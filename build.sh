@@ -22,6 +22,37 @@ else
   python3 -m pip install --user 'meson==1.5.2'
   export PATH="$HOME/.local/bin:$PATH"
 fi
+
+if ! python3 -c 'import sys; raise SystemExit(sys.version_info < (3, 8))'; then
+  modern_python=
+  for candidate in \
+    "$HOME/miniconda3/bin/python3" \
+    "$(command -v python3.12 2>/dev/null || true)" \
+    "$(command -v python3.11 2>/dev/null || true)" \
+    "$(command -v python3.10 2>/dev/null || true)" \
+    "$(command -v python3.9 2>/dev/null || true)" \
+    "$(command -v python3.8 2>/dev/null || true)"; do
+    if [[ -n "$candidate" ]] &&
+      "$candidate" -c 'import sys; raise SystemExit(sys.version_info < (3, 8))'; then
+      modern_python=$candidate
+      break
+    fi
+  done
+  if [[ -z "$modern_python" ]]; then
+    echo "LineageOS 23.2 requires Python 3.8 or newer." >&2
+    exit 1
+  fi
+
+  python_env="$(realpath .)/.build-python"
+  if [[ ! -x "$python_env/bin/python3" ]]; then
+    "$modern_python" -m venv "$python_env"
+  fi
+  if ! "$python_env/bin/python3" -c 'import yaml, google.protobuf, mako' 2>/dev/null; then
+    "$python_env/bin/python3" -m pip install PyYAML protobuf Mako
+  fi
+  export PATH="$python_env/bin:$PATH"
+fi
+
 git config --global user.name "github-actions[bot]"
 git config --global user.email "github-actions[bot]@users.noreply.github.com"
 git config --global trailer.changeid.key "Change-Id"
