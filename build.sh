@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo pipefail
+set -eo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 BUILD_TARGET=${BUILD_TARGET:-all}
