@@ -1,10 +1,22 @@
 #!/bin/bash
 
 export DEBIAN_FRONTEND=noninteractive
+BUILD_TARGET=${BUILD_TARGET:-all}
 sudo apt update
-sudo apt install -y sudo git android-sdk-platform-tools python-is-python3 python3-yaml qemu-utils # libncurses5
+sudo apt install -y sudo git android-sdk-platform-tools python3-yaml qemu-utils # libncurses5
+if apt-cache show python-is-python3 >/dev/null 2>&1; then
+  sudo apt install -y python-is-python3
+elif ! command -v python >/dev/null 2>&1; then
+  sudo ln -s /usr/bin/python3 /usr/local/bin/python
+fi
 sudo apt install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf imagemagick protobuf-compiler python3-protobuf lib32readline-dev lib32z1-dev libdw-dev libelf-dev lz4 libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev
-sudo apt install -y meson-1.5 glslang-tools python3-mako
+if apt-cache show meson-1.5 >/dev/null 2>&1; then
+  sudo apt install -y meson-1.5 glslang-tools python3-mako
+else
+  sudo apt install -y glslang-tools python3-mako python3-pip
+  python3 -m pip install --user 'meson==1.5.2'
+  export PATH="$HOME/.local/bin:$PATH"
+fi
 git config --global user.name "github-actions[bot]"
 git config --global user.email "github-actions[bot]@users.noreply.github.com"
 git config --global trailer.changeid.key "Change-Id"
@@ -25,25 +37,28 @@ sed -i 's/-$(LINEAGE_BUILDTYPE)/-jqssun/g' vendor/lineage/config/version.mk
 source build/envsetup.sh
 export AB_OTA_UPDATER=false ROOMSERVICE_BRANCHES="lineage-23.1 lineage-23.0"
 
-# Let roomservice discover both target-specific device trees before patching.
-breakfast virtio_x86_64 userdebug
+# Let roomservice discover the ARM64 device trees before patching.
 breakfast virtio_arm64only userdebug
 ../../patches/apply.sh "$(pwd)"
 
-breakfast virtio_x86_64 userdebug
-m recoveryimage
-mv out/target/product/virtio_x86_64/recovery.img ../../recovery_x86_64-userdebug.img
+if [[ "$BUILD_TARGET" == "all" || "$BUILD_TARGET" == "x86_64" ]]; then
+  breakfast virtio_x86_64 userdebug
+  m recoveryimage
+  mv out/target/product/virtio_x86_64/recovery.img ../../recovery_x86_64-userdebug.img
 
-breakfast virtio_x86_64 user
-m vm-utm-zip otapackage
-mv out/target/product/virtio_x86_64/boot.img ../../boot_x86_64.img
-mv out/target/product/virtio_x86_64/recovery.img ../../recovery_x86_64.img
+  breakfast virtio_x86_64 user
+  m vm-utm-zip otapackage
+  mv out/target/product/virtio_x86_64/boot.img ../../boot_x86_64.img
+  mv out/target/product/virtio_x86_64/recovery.img ../../recovery_x86_64.img
+fi
 
-breakfast virtio_arm64only userdebug
-m recoveryimage
-mv out/target/product/virtio_arm64only/recovery.img ../../recovery_arm64only-userdebug.img
+if [[ "$BUILD_TARGET" == "all" || "$BUILD_TARGET" == "arm64only" ]]; then
+  breakfast virtio_arm64only userdebug
+  m recoveryimage
+  mv out/target/product/virtio_arm64only/recovery.img ../../recovery_arm64only-userdebug.img
 
-breakfast virtio_arm64only user
-m vm-utm-zip otapackage
-mv out/target/product/virtio_arm64only/boot.img ../../boot_arm64only.img
-mv out/target/product/virtio_arm64only/recovery.img ../../recovery_arm64only.img
+  breakfast virtio_arm64only user
+  m vm-utm-zip otapackage
+  mv out/target/product/virtio_arm64only/boot.img ../../boot_arm64only.img
+  mv out/target/product/virtio_arm64only/recovery.img ../../recovery_arm64only.img
+fi

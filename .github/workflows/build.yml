@@ -8,6 +8,15 @@ on:
         required: true
         type: string
         default: "self-hosted" # ubuntu-latest
+      target:
+        description: "Build target"
+        required: true
+        type: choice
+        options:
+          - arm64only
+          - x86_64
+          - all
+        default: arm64only
   schedule:
     - cron: "0 0 */16 * *"
 
@@ -47,10 +56,12 @@ jobs:
       - name: Build
         env:
           DEBIAN_FRONTEND: noninteractive
+          BUILD_TARGET: ${{ github.event_name == 'workflow_dispatch' && inputs.target || 'all' }}
         run: |
           ./build.sh
 
-      - name: Publish
+      - name: Publish ARM64
+        if: github.event_name != 'workflow_dispatch' || inputs.target == 'arm64only' || inputs.target == 'all'
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -62,13 +73,23 @@ jobs:
             recovery_arm64only-userdebug.img
             android/lineage/out/target/product/virtio_arm64only/*ota.zip
             android/lineage/out/target/product/virtio_arm64only/VirtualMachine/UTM/UTM-VM*.zip
+
+      - name: Publish x86_64
+        if: github.event_name != 'workflow_dispatch' || inputs.target == 'x86_64' || inputs.target == 'all'
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          name: v${{ env.VERSION }}
+          tag_name: v${{ env.VERSION }}
+          files: |
             boot_x86_64.img
             recovery_x86_64.img
             recovery_x86_64-userdebug.img
             android/lineage/out/target/product/virtio_x86_64/*ota.zip
             android/lineage/out/target/product/virtio_x86_64/VirtualMachine/UTM/UTM-VM*.zip
 
-      - name: Attest
+      - name: Attest ARM64
+        if: github.event_name != 'workflow_dispatch' || inputs.target == 'arm64only' || inputs.target == 'all'
         uses: actions/attest@v4
         with:
           subject-path: |
@@ -77,6 +98,12 @@ jobs:
             recovery_arm64only-userdebug.img
             android/lineage/out/target/product/virtio_arm64only/*ota.zip
             android/lineage/out/target/product/virtio_arm64only/VirtualMachine/UTM/UTM-VM*.zip
+
+      - name: Attest x86_64
+        if: github.event_name != 'workflow_dispatch' || inputs.target == 'x86_64' || inputs.target == 'all'
+        uses: actions/attest@v4
+        with:
+          subject-path: |
             boot_x86_64.img
             recovery_x86_64.img
             recovery_x86_64-userdebug.img
