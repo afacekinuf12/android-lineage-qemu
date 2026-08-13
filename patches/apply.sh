@@ -32,3 +32,4 @@ apply_patch() {
 
 apply_patch device/virt/virt-common 0001-virt-common-enable-compat-hardware.patch
 apply_patch device/virt/virtio_arm64 0002-virtio-arm64-expand-utm-hardware.patch
+apply_patch external/mesa 0003-mesa-use-build-environment-python.patch

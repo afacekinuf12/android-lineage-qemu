@@ -5,13 +5,13 @@ set -eo pipefail
 export DEBIAN_FRONTEND=noninteractive
 BUILD_TARGET=${BUILD_TARGET:-all}
 sudo apt update
-sudo apt install -y sudo git android-sdk-platform-tools python3-yaml qemu-utils # libncurses5
+sudo apt install -y sudo git android-sdk-platform-tools python3-packaging python3-yaml qemu-utils # libncurses5
 if apt-cache show python-is-python3 >/dev/null 2>&1; then
   sudo apt install -y python-is-python3
 elif ! command -v python >/dev/null 2>&1; then
   sudo ln -s /usr/bin/python3 /usr/local/bin/python
 fi
-sudo apt install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf imagemagick protobuf-compiler python3-protobuf lib32readline-dev lib32z1-dev libdw-dev libelf-dev lz4 libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev
+sudo apt install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf imagemagick ninja-build protobuf-compiler python3-protobuf lib32readline-dev lib32z1-dev libdw-dev libelf-dev lz4 libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev
 if apt-cache show meson-1.5 >/dev/null 2>&1; then
   sudo apt install -y meson-1.5 glslang-tools python3-mako
 else
@@ -47,11 +47,12 @@ if ! python3 -c 'import sys; raise SystemExit(sys.version_info < (3, 8))'; then
   if [[ ! -x "$python_env/bin/python3" ]]; then
     "$modern_python" -m venv "$python_env"
   fi
-  if ! "$python_env/bin/python3" -c 'import yaml, google.protobuf, mako' 2>/dev/null; then
-    "$python_env/bin/python3" -m pip install PyYAML protobuf Mako
+  if ! "$python_env/bin/python3" -c 'import yaml, google.protobuf, mako, packaging' 2>/dev/null; then
+    "$python_env/bin/python3" -m pip install PyYAML protobuf Mako packaging
   fi
   export PATH="$python_env/bin:$PATH"
 fi
+export LINEAGE_BUILD_PYTHON="$(dirname "$(command -v python3)")"
 
 git config --global user.name "github-actions[bot]"
 git config --global user.email "github-actions[bot]@users.noreply.github.com"

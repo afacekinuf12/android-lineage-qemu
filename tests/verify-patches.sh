@@ -22,5 +22,8 @@ clone_and_check \
 clone_and_check \
   android_device_virt_virtio_arm64 \
   0002-virtio-arm64-expand-utm-hardware.patch
+clone_and_check \
+  android_external_mesa \
+  0003-mesa-use-build-environment-python.patch
 
 echo "All LineageOS patches apply cleanly."
