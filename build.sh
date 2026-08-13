@@ -36,7 +36,23 @@ export PATH="$(realpath .)/bin:$PATH"
 cd android/lineage
 export PATH="$(realpath .)/prebuilts/sdk/tools/linux/bin/:$PATH"
 repo init -u https://github.com/LineageOS/android.git -b lineage-23.2 --git-lfs --no-clone-bundle --depth 1
-repo sync -c --prune --force-sync --retry-fetches=8 -j $(nproc)
+sync_complete=false
+for attempt in 1 2 3; do
+  if [[ "$attempt" == 1 ]]; then
+    sync_jobs=$(nproc)
+  else
+    sync_jobs=8
+  fi
+  if repo sync -c --prune --force-sync --retry-fetches=8 -j "$sync_jobs"; then
+    sync_complete=true
+    break
+  fi
+  sleep $((attempt * 60))
+done
+if [[ "$sync_complete" != true ]]; then
+  echo "Failed to sync the Android source tree after three attempts." >&2
+  exit 1
+fi
 sed -i 's/-$(LINEAGE_BUILDTYPE)/-jqssun/g' vendor/lineage/config/version.mk
 
 source build/envsetup.sh
