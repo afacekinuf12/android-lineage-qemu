@@ -1,0 +1,33 @@
+diff --git a/vm_templates/utm/config.plist b/vm_templates/utm/config.plist
+index c533be4..203495d 100644
+--- a/vm_templates/utm/config.plist
++++ b/vm_templates/utm/config.plist
+@@ -73,7 +73,7 @@
+ 	<key>Input</key>
+ 	<dict>
+ 		<key>MaximumUsbShare</key>
+-		<integer>2</integer>
++		<integer>8</integer>
+ 		<key>UsbBusSupport</key>
+ 		<string>3.0</string>
+ 		<key>UsbSharing</key>
+@@ -167,13 +167,13 @@
+ 		<key>CPU</key>
+ 		<string>default</string>
+ 		<key>CPUCount</key>
+-		<integer>2</integer>
++		<integer>4</integer>
+ 		<key>CPUFlagsAdd</key>
+ 		<array/>
+ 		<key>CPUFlagsRemove</key>
+ 		<array/>
+ 		<key>ForceMulticore</key>
+ 		<false/>
+ 		<key>JITCacheSize</key>
+ 		<integer>0</integer>
+ 		<key>MemorySize</key>
+-		<integer>2048</integer>
++		<integer>4096</integer>
+ 		<key>Target</key>
+ 		<string>virt</string>
+ 	</dict>

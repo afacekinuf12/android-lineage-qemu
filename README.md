@@ -79,6 +79,24 @@ To install [Magisk](https://github.com/topjohnwu/Magisk/releases/latest), downlo
 fastboot -s tcp:$HOST_IP flash boot magisk_patched*.img
 ```
 
+## Compatibility hardware extensions
+
+This fork applies a small, reviewable patch set after LineageOS roomservice
+discovers the VirtIO device trees. The patched image:
+
+- enables VirtWifi by default on the VirtIO Ethernet interface;
+- includes the Android external USB camera provider and UVC/V4L2 kernel support;
+- allows up to eight USB devices in the ARM64 UTM template; and
+- configures the ARM64 UTM template with four CPUs and 4 GiB of memory.
+
+The host bridge in [`host_bridge`](host_bridge) accepts JSON Lines and injects
+motion, rotation, and battery test events through ADB. It is intended as the
+stable event interface for macOS, USB accessory, and physical Android device
+producers.
+
+These extensions do not provide a trusted cellular modem, hardware-backed
+KeyMint/StrongBox, Widevine L1, or Google hardware attestation.
+
 ## Building
 
 All releases are built using [Actions](https://github.com/features/actions). Current releases can also be attested using [GitHub CLI](https://github.com/cli/cli).
