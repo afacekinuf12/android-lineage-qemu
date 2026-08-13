@@ -1,0 +1,13 @@
+diff --git a/vm_templates/utm/config.plist b/vm_templates/utm/config.plist
+index b23a388..672b6c1 100644
+--- a/vm_templates/utm/config.plist
++++ b/vm_templates/utm/config.plist
+@@ -168,7 +168,7 @@
+ 		<key>JITCacheSize</key>
+ 		<integer>0</integer>
+ 		<key>MemorySize</key>
+-		<integer>2048</integer>
++		<integer>4096</integer>
+ 		<key>Target</key>
+ 		<string>virt</string>
+ 	</dict>

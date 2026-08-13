@@ -9,7 +9,7 @@ trap 'rm -rf "$WORK"' EXIT
 clone_and_check() {
   local repository=$1
   local patch=$2
-  local checkout="$WORK/$repository"
+  local checkout="$WORK/${repository}-${patch%.patch}"
 
   git clone --quiet --depth 1 --branch lineage-23.2 \
     "https://github.com/LineageOS/$repository.git" "$checkout"
@@ -22,6 +22,9 @@ clone_and_check \
 clone_and_check \
   android_device_virt_virtio_arm64 \
   0002-virtio-arm64-expand-utm-hardware.patch
+clone_and_check \
+  android_device_virt_virtio_arm64 \
+  0004-virtio-arm64-increase-utm-memory.patch
 clone_and_check \
   android_external_mesa \
   0003-mesa-use-build-environment-python.patch
