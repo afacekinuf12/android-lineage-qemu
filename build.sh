@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 export DEBIAN_FRONTEND=noninteractive
 BUILD_TARGET=${BUILD_TARGET:-all}
 sudo apt update
@@ -14,6 +16,9 @@ if apt-cache show meson-1.5 >/dev/null 2>&1; then
   sudo apt install -y meson-1.5 glslang-tools python3-mako
 else
   sudo apt install -y glslang-tools python3-mako python3-pip
+  if ! python3 -m pip --version >/dev/null 2>&1; then
+    sudo apt-get install --reinstall -y python3-pip
+  fi
   python3 -m pip install --user 'meson==1.5.2'
   export PATH="$HOME/.local/bin:$PATH"
 fi

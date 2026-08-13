@@ -17,6 +17,11 @@ on:
           - x86_64
           - all
         default: arm64only
+      proxy:
+        description: "Optional ALL_PROXY URL"
+        required: false
+        type: string
+        default: ""
   schedule:
     - cron: "0 0 */16 * *"
 
@@ -57,6 +62,8 @@ jobs:
         env:
           DEBIAN_FRONTEND: noninteractive
           BUILD_TARGET: ${{ github.event_name == 'workflow_dispatch' && inputs.target || 'all' }}
+          ALL_PROXY: ${{ github.event_name == 'workflow_dispatch' && inputs.proxy || '' }}
+          NO_PROXY: localhost,127.0.0.1,10.0.0.0/8,.byted.org
         run: |
           ./build.sh
 
