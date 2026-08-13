@@ -1,0 +1,31 @@
+name: Verify patches
+
+on:
+  push:
+    paths:
+      - "patches/**"
+      - "host_bridge/**"
+      - "tests/test_host_bridge.py"
+      - "tests/verify-patches.sh"
+      - ".github/workflows/patches.yml"
+  pull_request:
+    paths:
+      - "patches/**"
+      - "host_bridge/**"
+      - "tests/test_host_bridge.py"
+      - "tests/verify-patches.sh"
+      - ".github/workflows/patches.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Verify LineageOS patches
+        run: tests/verify-patches.sh
+      - name: Test host bridge
+        run: python3 -m unittest tests/test_host_bridge.py

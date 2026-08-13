@@ -25,6 +25,11 @@ sed -i 's/-$(LINEAGE_BUILDTYPE)/-jqssun/g' vendor/lineage/config/version.mk
 source build/envsetup.sh
 export AB_OTA_UPDATER=false ROOMSERVICE_BRANCHES="lineage-23.1 lineage-23.0"
 
+# Let roomservice discover both target-specific device trees before patching.
+breakfast virtio_x86_64 userdebug
+breakfast virtio_arm64only userdebug
+../../patches/apply.sh "$(pwd)"
+
 breakfast virtio_x86_64 userdebug
 m recoveryimage
 mv out/target/product/virtio_x86_64/recovery.img ../../recovery_x86_64-userdebug.img

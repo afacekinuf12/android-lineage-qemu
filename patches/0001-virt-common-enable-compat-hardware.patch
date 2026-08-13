@@ -1,0 +1,40 @@
+diff --git a/configs/kernel/virt-common.config b/configs/kernel/virt-common.config
+index a2aa4a1..7a76525 100644
+--- a/configs/kernel/virt-common.config
++++ b/configs/kernel/virt-common.config
+@@ -9,6 +9,16 @@ CONFIG_DRM_VKMS=m
+ 
+ # EFI
+ CONFIG_EFI_STUB=y
++
++# External USB cameras
++CONFIG_MEDIA_SUPPORT=y
++CONFIG_MEDIA_CAMERA_SUPPORT=y
++CONFIG_MEDIA_USB_SUPPORT=y
++CONFIG_USB_VIDEO_CLASS=m
++CONFIG_V4L2_FWNODE=m
++CONFIG_V4L2_ASYNC=m
++CONFIG_VIDEOBUF2_V4L2=m
++CONFIG_VIDEOBUF2_VMALLOC=m
+ 
+ # Filesystem
+ CONFIG_ISO9660_FS=y
+diff --git a/configs/misc/grubenv.txt b/configs/misc/grubenv.txt
+index 64e0282..fd73cc8 100644
+--- a/configs/misc/grubenv.txt
++++ b/configs/misc/grubenv.txt
+@@ -1 +1 @@
+-android_hwui_renderer= android_insecure_adb=0 android_lcd_density= android_low_perf=0 android_nobootanim=0 android_selinux_permissive=0 android_theme=1 android_wifi_impl= zram=0 grub_android_default=0 grub_timeout=10 kms_display_resolution= mitigations=auto quiet=0 serial_console_function=default
++android_hwui_renderer= android_insecure_adb=0 android_lcd_density= android_low_perf=0 android_nobootanim=0 android_selinux_permissive=0 android_theme=1 android_wifi_impl=virt_wifi zram=0 grub_android_default=0 grub_timeout=10 kms_display_resolution= mitigations=auto quiet=0 serial_console_function=default
+diff --git a/virt-common.mk b/virt-common.mk
+index b62aa4d..2be6bf4 100644
+--- a/virt-common.mk
++++ b/virt-common.mk
+@@ -19,6 +19,7 @@ TARGET_KEYMINT_HAL_DEFAULT_INSIDE_APEX := false # To save existing users from do
+ TARGET_LIGHT_HAL := none
+ TARGET_MESA_ENABLE_SOFTWARE_RENDERER := true
+ TARGET_SENSORS_HAL := cuttlefish
++TARGET_SUPPORTS_EXTERNAL_CAMERAS := true
+ TARGET_SUPPORTS_SUSPEND := false
+ TARGET_SUPPORTS_USB_ACCESSORY_MODE := false
+ TARGET_USES_TABLET_INPUT_AS_TOUCHSCREEN := true
