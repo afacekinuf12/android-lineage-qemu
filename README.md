@@ -91,9 +91,10 @@ discovers the VirtIO device trees. The patched image:
 - configures the ARM64 UTM template with four CPUs and 4 GiB of memory.
 
 The host bridge in [`host_bridge`](host_bridge) accepts JSON Lines and injects
-motion, rotation, and battery test events through ADB. It is intended as the
-stable event interface for macOS, USB accessory, and physical Android device
-producers.
+motion, rotation, location, and battery test events through ADB. It supports a
+persistent Unix socket, stale-event rejection, ADB health checks, and automatic
+reconnection. It is the stable event interface for macOS, USB accessory, and
+physical Android device producers.
 
 Builds use persistent private release keys from
 `$HOME/.android-lineage-qemu-release-keys` on the build runner. The keys are

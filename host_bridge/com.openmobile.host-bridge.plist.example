@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.openmobile.host-bridge</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/python3</string>
+    <string>__REPOSITORY__/host_bridge/bridge.py</string>
+    <string>--adb</string>
+    <string>__ADB__</string>
+    <string>--serial</string>
+    <string>127.0.0.1:5555</string>
+    <string>--listen</string>
+    <string>/tmp/openmobile-host-bridge.sock</string>
+    <string>--status-file</string>
+    <string>/tmp/openmobile-host-bridge-status.json</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>StandardOutPath</key>
+  <string>/tmp/openmobile-host-bridge.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/openmobile-host-bridge.error.log</string>
+</dict>
+</plist>
