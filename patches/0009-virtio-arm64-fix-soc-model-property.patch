@@ -1,0 +1,8 @@
+diff --git a/lineage_virtio_arm64only.mk b/lineage_virtio_arm64only.mk
+index 268e439..4f87d1d 100644
+--- a/lineage_virtio_arm64only.mk
++++ b/lineage_virtio_arm64only.mk
+@@ -24,2 +24,2 @@ PRODUCT_MODEL := OpenMobile Virtual Device
+     ro.soc.manufacturer=$(PRODUCT_MANUFACTURER) \
+-    ro.soc.model=OpenMobile Virtual SoC
++    ro.soc.model=OpenMobile-Virtual-SoC

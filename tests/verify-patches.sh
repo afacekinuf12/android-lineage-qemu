@@ -16,6 +16,18 @@ clone_and_check() {
   git -C "$checkout" apply --check "$ROOT/patches/$patch"
 }
 
+clone_and_check_series() {
+  local repository=$1
+  shift
+  local checkout="$WORK/${repository}-series"
+
+  git clone --quiet --depth 1 --branch lineage-23.2 \
+    "https://github.com/LineageOS/$repository.git" "$checkout"
+  for patch in "$@"; do
+    git -C "$checkout" apply "$ROOT/patches/$patch"
+  done
+}
+
 clone_and_check \
   android_device_virt_virt-common \
   0001-virt-common-enable-compat-hardware.patch
@@ -34,9 +46,10 @@ clone_and_check \
 clone_and_check \
   android_device_virt_virtio_arm64 \
   0005-virtio-arm64-use-compatible-utm-display.patch
-clone_and_check \
+clone_and_check_series \
   android_device_virt_virtio_arm64only \
-  0007-virtio-arm64-consistent-product-identity.patch
+  0007-virtio-arm64-consistent-product-identity.patch \
+  0009-virtio-arm64-fix-soc-model-property.patch
 clone_and_check \
   android_external_mesa \
   0003-mesa-use-build-environment-python.patch

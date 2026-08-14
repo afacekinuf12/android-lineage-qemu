@@ -22,15 +22,15 @@ grep -q '^ro.product.system.brand=OpenMobile$' "$system_prop"
 grep -q '^ro.product.system.manufacturer=OpenMobile$' "$system_prop"
 grep -q '^ro.product.system.model=OpenMobile Virtual Device$' "$system_prop"
 grep -q '^ro.soc.manufacturer=OpenMobile$' "$vendor_prop"
-grep -q '^ro.soc.model=OpenMobile Virtual SoC$' "$vendor_prop"
+grep -q '^ro.soc.model=OpenMobile-Virtual-SoC$' "$vendor_prop"
 
 if grep -Eq 'liuming|n37-007-050|test-keys|eng\.' "$system_prop" "$vendor_prop"; then
   echo "build identity still exposes development metadata" >&2
   exit 1
 fi
 
-test -f "$permissions/android.hardware.sensor.gyroscope.xml"
-test -f "$permissions/android.hardware.sensor.compass.xml"
+test -f "$permissions/android.hardware.sensor.gyroscope.prebuilt.xml"
+test -f "$permissions/android.hardware.sensor.compass.prebuilt.xml"
 test ! -f "$permissions/android.hardware.sensor.hinge_angle.xml"
 test ! -f "$permissions/android.hardware.sensor.relative_humidity.xml"
 test ! -f "$permissions/android.hardware.sensor.barometer.xml"
