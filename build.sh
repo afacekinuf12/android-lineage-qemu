@@ -84,7 +84,13 @@ if [[ -e build/make/.git ]]; then
     target/product/security/media.pk8 \
     target/product/security/media.x509.pem \
     target/product/security/networkstack.pk8 \
-    target/product/security/networkstack.x509.pem
+    target/product/security/networkstack.x509.pem \
+    target/product/security/sdk_sandbox.pk8 \
+    target/product/security/sdk_sandbox.x509.pem \
+    target/product/security/bluetooth.pk8 \
+    target/product/security/bluetooth.x509.pem \
+    target/product/security/nfc.pk8 \
+    target/product/security/nfc.x509.pem
 fi
 sync_complete=false
 for attempt in 1 2 3; do

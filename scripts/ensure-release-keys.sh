@@ -4,7 +4,16 @@ set -euo pipefail
 
 ANDROID_ROOT=${1:-}
 KEY_STORE=${RELEASE_KEYS_DIR:-$HOME/.android-lineage-qemu-release-keys}
-KEY_NAMES=(releasekey platform shared media networkstack)
+KEY_NAMES=(
+  releasekey
+  platform
+  shared
+  media
+  networkstack
+  sdk_sandbox
+  bluetooth
+  nfc
+)
 SUBJECT=${RELEASE_KEY_SUBJECT:-/C=US/O=OpenMobile/OU=Android/CN=OpenMobile Virtual Device}
 
 if [[ -z "$ANDROID_ROOT" || ! -d "$ANDROID_ROOT/build/make/target/product/security" ]]; then
@@ -38,10 +47,10 @@ for name in "${KEY_NAMES[@]}"; do
   cp "$KEY_STORE/$name.x509.pem" "$private_keys/$name.x509.pem"
 done
 
-# Replace the standard development certificates so modules that explicitly use
-# platform/shared/media/networkstack are not signed with public AOSP test keys.
+# Replace standard development certificates so explicitly named modules are
+# not signed with public AOSP test keys.
 security="$ANDROID_ROOT/build/make/target/product/security"
-for name in platform shared media networkstack; do
+for name in platform shared media networkstack sdk_sandbox bluetooth nfc; do
   cp "$KEY_STORE/$name.pk8" "$security/$name.pk8"
   cp "$KEY_STORE/$name.x509.pem" "$security/$name.x509.pem"
 done

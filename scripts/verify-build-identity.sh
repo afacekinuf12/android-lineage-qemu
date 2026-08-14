@@ -40,7 +40,7 @@ misc_info=$(find "$target_files" -path '*/META/misc_info.txt' -type f | head -1)
 grep -q '^default_system_dev_certificate=vendor/lineage-priv/keys/releasekey$' \
   "$misc_info"
 
-for name in releasekey platform shared media networkstack; do
+for name in releasekey platform shared media networkstack sdk_sandbox bluetooth nfc; do
   private_certificate="$KEY_STORE/$name.x509.pem"
   if [[ "$name" == releasekey ]]; then
     build_certificate="$ANDROID_ROOT/build/make/target/product/security/testkey.x509.pem"
