@@ -19,6 +19,17 @@ hardware claims aligned with capabilities that can actually be supplied.
 | Health and power | Cuttlefish Health HAL and generic Power HAL | Virtual-device semantics |
 | Input | USB tablet, mouse, keyboard, and multitouch conversion | Functional |
 
+## Device Identity
+
+- Public product identity uses the project-owned `OpenMobile` brand while the
+  internal device name remains `virtio_arm64only`.
+- User builds use persistent private release keys on the build runner.
+- Build username and hostname are normalized to `android` and `buildhost`.
+- Extracted UTM bundles must be personalized with `tools/personalize-utm.py`
+  before import so cloned instances do not share UUID and MAC addresses.
+- The identity remains explicitly virtual. It does not claim to be a Pixel,
+  Samsung, or other certified physical model.
+
 ## Intentionally Not Claimed
 
 The following require physical security hardware or radio infrastructure and

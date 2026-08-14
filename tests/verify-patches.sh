@@ -23,6 +23,9 @@ clone_and_check \
   android_device_virt_virt-common \
   0006-virt-common-declare-bridged-gps.patch
 clone_and_check \
+  android_device_virt_virt-common \
+  0008-virt-common-align-declared-hardware.patch
+clone_and_check \
   android_device_virt_virtio_arm64 \
   0002-virtio-arm64-expand-utm-hardware.patch
 clone_and_check \
@@ -31,6 +34,9 @@ clone_and_check \
 clone_and_check \
   android_device_virt_virtio_arm64 \
   0005-virtio-arm64-use-compatible-utm-display.patch
+clone_and_check \
+  android_device_virt_virtio_arm64only \
+  0007-virtio-arm64-consistent-product-identity.patch
 clone_and_check \
   android_external_mesa \
   0003-mesa-use-build-environment-python.patch

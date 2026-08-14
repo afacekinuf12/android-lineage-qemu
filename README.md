@@ -95,6 +95,18 @@ motion, rotation, and battery test events through ADB. It is intended as the
 stable event interface for macOS, USB accessory, and physical Android device
 producers.
 
+Builds use persistent private release keys from
+`$HOME/.android-lineage-qemu-release-keys` on the build runner. The keys are
+never copied into release artifacts or this repository. Changing or losing
+that directory breaks OTA and platform-signature continuity.
+
+After extracting a new UTM archive, assign a unique VM UUID and locally
+administered MAC address before importing it:
+
+```shell
+tools/personalize-utm.py LineageOS_on_arm64.utm --name "OpenMobile Device"
+```
+
 These extensions do not provide a trusted cellular modem, hardware-backed
 KeyMint/StrongBox, Widevine L1, or Google hardware attestation.
 

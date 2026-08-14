@@ -1,0 +1,27 @@
+diff --git a/virt-common.mk b/virt-common.mk
+index b62aa4d..08fd693 100644
+--- a/virt-common.mk
++++ b/virt-common.mk
+@@ -20,2 +20,3 @@
+ TARGET_MESA_ENABLE_SOFTWARE_RENDERER := true
++LOCAL_SENSOR_FILE_OVERRIDES := true
+ TARGET_SENSORS_HAL := cuttlefish
+@@ -179,5 +180,9 @@
+     frameworks/native/data/etc/android.hardware.touchscreen.multitouch.jazzhand.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.touchscreen.multitouch.jazzhand.xml
+-
++
++PRODUCT_PACKAGES += \
++    android.hardware.sensor.compass.prebuilt.xml \
++    android.hardware.sensor.gyroscope.prebuilt.xml
++
+ PRODUCT_PACKAGES += \
+     android.hardware.bluetooth.prebuilt.xml \
+     android.hardware.bluetooth_le.prebuilt.xml \
+@@ -194,7 +199,6 @@
+ # nothing
+ else
+ PRODUCT_COPY_FILES += \
+-    $(VIRT_COMMON_PATH)/configs/misc/android.hardware.type.pc.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/permissions/android.hardware.type.pc.xml \
+     frameworks/native/data/etc/android.software.freeform_window_management.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/permissions/device_virt-android.software.freeform_window_management.xml \
+     frameworks/native/data/etc/tablet_core_hardware.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/tablet_core_hardware.xml
+ endif

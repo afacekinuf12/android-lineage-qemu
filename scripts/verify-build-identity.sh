@@ -1,0 +1,54 @@
+#!/bin/bash
+
+set -euo pipefail
+
+PRODUCT_OUT=${1:-}
+if [[ -z "$PRODUCT_OUT" || ! -d "$PRODUCT_OUT" ]]; then
+  echo "usage: $0 <product-out>" >&2
+  exit 2
+fi
+
+ANDROID_ROOT=$(cd "$PRODUCT_OUT/../../../.." && pwd)
+KEY_STORE=${RELEASE_KEYS_DIR:-$HOME/.android-lineage-qemu-release-keys}
+system_prop="$PRODUCT_OUT/system/build.prop"
+vendor_prop="$PRODUCT_OUT/vendor/build.prop"
+permissions="$PRODUCT_OUT/vendor/etc/permissions"
+product_permissions="$PRODUCT_OUT/product/etc/permissions"
+target_files="$PRODUCT_OUT/obj/PACKAGING/target_files_intermediates"
+
+grep -q '^ro.build.fingerprint=OpenMobile/' "$system_prop"
+grep -q ':user/release-keys$' "$system_prop"
+grep -q '^ro.product.system.brand=OpenMobile$' "$system_prop"
+grep -q '^ro.product.system.manufacturer=OpenMobile$' "$system_prop"
+grep -q '^ro.product.system.model=OpenMobile Virtual Device$' "$system_prop"
+grep -q '^ro.soc.manufacturer=OpenMobile$' "$vendor_prop"
+grep -q '^ro.soc.model=OpenMobile Virtual SoC$' "$vendor_prop"
+
+if grep -Eq 'liuming|n37-007-050|test-keys|eng\.' "$system_prop" "$vendor_prop"; then
+  echo "build identity still exposes development metadata" >&2
+  exit 1
+fi
+
+test -f "$permissions/android.hardware.sensor.gyroscope.xml"
+test -f "$permissions/android.hardware.sensor.compass.xml"
+test ! -f "$permissions/android.hardware.sensor.hinge_angle.xml"
+test ! -f "$permissions/android.hardware.sensor.relative_humidity.xml"
+test ! -f "$permissions/android.hardware.sensor.barometer.xml"
+test ! -f "$product_permissions/android.hardware.type.pc.xml"
+
+misc_info=$(find "$target_files" -path '*/META/misc_info.txt' -type f | head -1)
+grep -q '^default_system_dev_certificate=vendor/lineage-priv/keys/releasekey$' \
+  "$misc_info"
+
+for name in releasekey platform shared media networkstack; do
+  private_certificate="$KEY_STORE/$name.x509.pem"
+  if [[ "$name" == releasekey ]]; then
+    build_certificate="$ANDROID_ROOT/build/make/target/product/security/testkey.x509.pem"
+  else
+    build_certificate="$ANDROID_ROOT/build/make/target/product/security/$name.x509.pem"
+  fi
+
+  cmp -s "$private_certificate" \
+    "$ANDROID_ROOT/vendor/lineage-priv/keys/$name.x509.pem"
+  cmp -s "$private_certificate" "$build_certificate"
+done

@@ -4,6 +4,9 @@ set -eo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 BUILD_TARGET=${BUILD_TARGET:-all}
+export BUILD_USERNAME=${BUILD_USERNAME:-android}
+export BUILD_HOSTNAME=${BUILD_HOSTNAME:-buildhost}
+export BUILD_NUMBER=${BUILD_NUMBER:-$(date -u '+%Y%m%d')}
 sudo apt update
 sudo apt install -y sudo git android-sdk-platform-tools python3-packaging python3-yaml qemu-utils # libncurses5
 if apt-cache show python-is-python3 >/dev/null 2>&1; then
@@ -68,6 +71,21 @@ export PATH="$(realpath .)/bin:$PATH"
 cd android/lineage
 export PATH="$(realpath .)/prebuilts/sdk/tools/linux/bin/:$PATH"
 repo init -u https://github.com/LineageOS/android.git -b lineage-23.2 --git-lfs --no-clone-bundle --depth 1
+# Release keys are copied into standard certificate paths after sync. Restore
+# those tracked files first so a later incremental sync starts from a clean tree.
+if [[ -e build/make/.git ]]; then
+  git -C build/make checkout -- \
+    target/product/security/testkey.pk8 \
+    target/product/security/testkey.x509.pem \
+    target/product/security/platform.pk8 \
+    target/product/security/platform.x509.pem \
+    target/product/security/shared.pk8 \
+    target/product/security/shared.x509.pem \
+    target/product/security/media.pk8 \
+    target/product/security/media.x509.pem \
+    target/product/security/networkstack.pk8 \
+    target/product/security/networkstack.x509.pem
+fi
 sync_complete=false
 for attempt in 1 2 3; do
   if [[ "$attempt" == 1 ]]; then
@@ -87,6 +105,7 @@ if [[ "$sync_complete" != true ]]; then
 fi
 sed -i 's/-$(LINEAGE_BUILDTYPE)/-jqssun/g' vendor/lineage/config/version.mk
 
+../../scripts/ensure-release-keys.sh "$(pwd)"
 source build/envsetup.sh
 export AB_OTA_UPDATER=false ROOMSERVICE_BRANCHES="lineage-23.1 lineage-23.0"
 
@@ -112,6 +131,7 @@ if [[ "$BUILD_TARGET" == "all" || "$BUILD_TARGET" == "arm64only" ]]; then
 
   breakfast virtio_arm64only user
   m vm-utm-zip otapackage
+  ../../scripts/verify-build-identity.sh out/target/product/virtio_arm64only
   mv out/target/product/virtio_arm64only/boot.img ../../boot_arm64only.img
   mv out/target/product/virtio_arm64only/recovery.img ../../recovery_arm64only.img
 fi
