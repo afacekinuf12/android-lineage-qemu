@@ -119,6 +119,13 @@ export AB_OTA_UPDATER=false ROOMSERVICE_BRANCHES="lineage-23.1 lineage-23.0"
 
 # Let roomservice discover the ARM64 device trees before patching.
 breakfast virtio_arm64only userdebug
+git -C device/virt/virt-common checkout -- \
+  configs/kernel/virt-common.config \
+  configs/misc/grubenv.txt \
+  virt-common.mk
+git -C device/virt/virtio_arm64 checkout -- vm_templates/utm/config.plist
+git -C device/virt/virtio_arm64only checkout -- lineage_virtio_arm64only.mk
+git -C external/mesa checkout -- android/mesa3d_cross.mk
 ../../patches/apply.sh "$(pwd)"
 
 if [[ "$BUILD_TARGET" == "all" || "$BUILD_TARGET" == "x86_64" ]]; then
