@@ -1,0 +1,16 @@
+diff --git a/virt-common.mk b/virt-common.mk
+index b62aa4d..ee2ca8e 100644
+--- a/virt-common.mk
++++ b/virt-common.mk
+@@ -28,6 +28,11 @@ include device/mainline/common/optional/options.mk
+ $(call inherit-product, device/mainline/common/mainline_common.mk)
+ 
+ VIRT_COMMON_PATH := device/virt/virt-common
++
++# Location is supplied by the host bridge through Android's GPS test provider.
++PRODUCT_COPY_FILES += \
++    frameworks/native/data/etc/android.hardware.location.gps.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.location.gps.xml
++
+ $(call soong_config_set_bool,device_virt_virt_common,enabled,true)
+ 
+ # A/B

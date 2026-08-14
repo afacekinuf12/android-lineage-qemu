@@ -20,6 +20,9 @@ clone_and_check \
   android_device_virt_virt-common \
   0001-virt-common-enable-compat-hardware.patch
 clone_and_check \
+  android_device_virt_virt-common \
+  0006-virt-common-declare-bridged-gps.patch
+clone_and_check \
   android_device_virt_virtio_arm64 \
   0002-virtio-arm64-expand-utm-hardware.patch
 clone_and_check \

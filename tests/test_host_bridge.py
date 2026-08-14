@@ -42,6 +42,59 @@ class HostBridgeTests(unittest.TestCase):
             ],
         )
 
+    def test_location_commands(self):
+        commands = BRIDGE.commands_for(
+            {
+                "type": "location",
+                "latitude": 37.3318,
+                "longitude": -122.0312,
+                "accuracy": 3.5,
+            }
+        )
+        self.assertIn("add-test-provider gps", commands[0][-1])
+        self.assertEqual(
+            commands[1],
+            [
+                "shell",
+                "cmd",
+                "location",
+                "providers",
+                "set-test-provider-location",
+                "gps",
+                "--location",
+                "37.3318,-122.0312",
+                "--accuracy",
+                "3.5",
+            ],
+        )
+
+    def test_location_validation(self):
+        with self.assertRaises(ValueError):
+            BRIDGE.commands_for(
+                {"type": "location", "latitude": 91, "longitude": 0}
+            )
+
+    def test_extended_battery_commands(self):
+        commands = BRIDGE.commands_for(
+            {
+                "type": "battery",
+                "level": 80,
+                "status": 2,
+                "present": True,
+                "acPowered": True,
+                "usbPowered": False,
+                "temperature": 31.2,
+            }
+        )
+        self.assertIn(
+            ["shell", "dumpsys", "battery", "set", "present", "1"], commands
+        )
+        self.assertIn(["shell", "dumpsys", "battery", "set", "ac", "1"], commands)
+        self.assertIn(["shell", "dumpsys", "battery", "set", "usb", "0"], commands)
+        self.assertIn(
+            ["shell", "dumpsys", "battery", "set", "temp", "312"], commands
+        )
+
     def test_vector_validation(self):
         with self.assertRaises(ValueError):
             BRIDGE.commands_for(

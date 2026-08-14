@@ -30,6 +30,20 @@ def _vector(message: dict[str, Any], name: str) -> list[str]:
     return [str(item) for item in value]
 
 
+def _number(
+    message: dict[str, Any],
+    name: str,
+    minimum: float,
+    maximum: float,
+) -> float:
+    value = message.get(name)
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        raise ValueError(f"{name} must be a number")
+    if not minimum <= value <= maximum:
+        raise ValueError(f"{name} must be between {minimum} and {maximum}")
+    return float(value)
+
+
 def commands_for(message: dict[str, Any]) -> list[list[str]]:
     message_type = message.get("type")
     if message_type == "motion":
@@ -44,6 +58,45 @@ def commands_for(message: dict[str, Any]) -> list[list[str]]:
         if not isinstance(degrees, int) or degrees not in (0, 90, 180, 270):
             raise ValueError("degrees must be one of 0, 90, 180, or 270")
         return [["shell", "cuttlefish_sensor_injection", "rotate", str(degrees)]]
+    if message_type == "location":
+        latitude = _number(message, "latitude", -90, 90)
+        longitude = _number(message, "longitude", -180, 180)
+        accuracy = (
+            _number(message, "accuracy", 0, 10000)
+            if "accuracy" in message
+            else 5.0
+        )
+        coordinates = f"{latitude},{longitude}"
+        setup = (
+            "cmd location set-location-enabled true; "
+            "cmd location providers add-test-provider gps "
+            "--requiresSatellite --supportsAltitude --supportsSpeed "
+            "--supportsBearing >/dev/null 2>&1 || true; "
+            "cmd location providers set-test-provider-enabled gps true"
+        )
+        return [
+            ["shell", "sh", "-c", setup],
+            [
+                "shell",
+                "cmd",
+                "location",
+                "providers",
+                "set-test-provider-location",
+                "gps",
+                "--location",
+                coordinates,
+                "--accuracy",
+                str(accuracy),
+            ],
+        ]
+    if message_type == "location-reset":
+        reset = (
+            "cmd location providers set-test-provider-enabled gps false "
+            ">/dev/null 2>&1 || true; "
+            "cmd location providers remove-test-provider gps "
+            ">/dev/null 2>&1 || true"
+        )
+        return [["shell", "sh", "-c", reset]]
     if message_type == "battery":
         level = message.get("level")
         if not isinstance(level, int) or not 0 <= level <= 100:
@@ -51,10 +104,44 @@ def commands_for(message: dict[str, Any]) -> list[list[str]]:
         status = message.get("status", 2)
         if not isinstance(status, int) or not 1 <= status <= 5:
             raise ValueError("battery status must be an integer from 1 to 5")
-        return [
+        commands = [
             ["shell", "dumpsys", "battery", "set", "level", str(level)],
             ["shell", "dumpsys", "battery", "set", "status", str(status)],
         ]
+        optional_boolean_fields = {
+            "present": "present",
+            "acPowered": "ac",
+            "usbPowered": "usb",
+            "wirelessPowered": "wireless",
+        }
+        for field, battery_property in optional_boolean_fields.items():
+            value = message.get(field)
+            if value is not None:
+                if not isinstance(value, bool):
+                    raise ValueError(f"{field} must be a boolean")
+                commands.append(
+                    [
+                        "shell",
+                        "dumpsys",
+                        "battery",
+                        "set",
+                        battery_property,
+                        "1" if value else "0",
+                    ]
+                )
+        if "temperature" in message:
+            temperature = _number(message, "temperature", -50, 100)
+            commands.append(
+                [
+                    "shell",
+                    "dumpsys",
+                    "battery",
+                    "set",
+                    "temp",
+                    str(round(temperature * 10)),
+                ]
+            )
+        return commands
     if message_type == "battery-reset":
         return [["shell", "dumpsys", "battery", "reset"]]
     raise ValueError(f"unsupported message type: {message_type!r}")

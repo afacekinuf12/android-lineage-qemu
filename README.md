@@ -86,6 +86,7 @@ discovers the VirtIO device trees. The patched image:
 
 - enables VirtWifi by default on the VirtIO Ethernet interface;
 - includes the Android external USB camera provider and UVC/V4L2 kernel support;
+- declares bridged GPS support and accepts host location injection;
 - allows up to eight USB devices in the ARM64 UTM template; and
 - configures the ARM64 UTM template with four CPUs and 4 GiB of memory.
 
@@ -96,6 +97,9 @@ producers.
 
 These extensions do not provide a trusted cellular modem, hardware-backed
 KeyMint/StrongBox, Widevine L1, or Google hardware attestation.
+
+See [`HARDWARE_COMPATIBILITY.md`](HARDWARE_COMPATIBILITY.md) for the detailed
+fidelity matrix and the remaining differences from a physical phone.
 
 ## Building
 
