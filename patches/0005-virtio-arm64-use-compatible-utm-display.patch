@@ -1,0 +1,13 @@
+diff --git a/vm_templates/utm/config.plist b/vm_templates/utm/config.plist
+index b23a388..e5b783c 100644
+--- a/vm_templates/utm/config.plist
++++ b/vm_templates/utm/config.plist
+@@ -12,7 +12,7 @@
+ 			<key>DynamicResolution</key>
+ 			<true/>
+ 			<key>Hardware</key>
+-			<string>virtio-gpu-gl-pci</string>
++			<string>virtio-gpu-pci</string>
+ 			<key>NativeResolution</key>
+ 			<false/>
+ 			<key>UpscalingFilter</key>

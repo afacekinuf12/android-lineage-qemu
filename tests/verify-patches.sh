@@ -26,6 +26,9 @@ clone_and_check \
   android_device_virt_virtio_arm64 \
   0004-virtio-arm64-increase-utm-memory.patch
 clone_and_check \
+  android_device_virt_virtio_arm64 \
+  0005-virtio-arm64-use-compatible-utm-display.patch
+clone_and_check \
   android_external_mesa \
   0003-mesa-use-build-environment-python.patch
 
