@@ -4,7 +4,7 @@ set -eo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 BUILD_TARGET=${BUILD_TARGET:-all}
-BUILD_JOBS=${BUILD_JOBS:-16}
+BUILD_JOBS=${BUILD_JOBS:-25}
 export BUILD_USERNAME=${BUILD_USERNAME:-android}
 export BUILD_HOSTNAME=${BUILD_HOSTNAME:-buildhost}
 export BUILD_NUMBER=${BUILD_NUMBER:-$(date -u '+%Y%m%d')}
