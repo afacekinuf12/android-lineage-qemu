@@ -52,3 +52,5 @@ for name in releasekey platform shared media networkstack sdk_sandbox bluetooth 
     "$ANDROID_ROOT/vendor/lineage-priv/keys/$name.x509.pem"
   cmp -s "$private_certificate" "$build_certificate"
 done
+cmp -s "$KEY_STORE/releasekey.x509.pem" \
+  "$ANDROID_ROOT/vendor/lineage-priv/keys/testkey.x509.pem"

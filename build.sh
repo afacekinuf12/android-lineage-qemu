@@ -4,9 +4,11 @@ set -eo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 BUILD_TARGET=${BUILD_TARGET:-all}
+BUILD_JOBS=${BUILD_JOBS:-16}
 export BUILD_USERNAME=${BUILD_USERNAME:-android}
 export BUILD_HOSTNAME=${BUILD_HOSTNAME:-buildhost}
 export BUILD_NUMBER=${BUILD_NUMBER:-$(date -u '+%Y%m%d')}
+export JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:--XX:+DisableAttachMechanism}
 sudo apt update
 sudo apt install -y sudo git android-sdk-platform-tools python3-packaging python3-yaml qemu-utils # libncurses5
 if apt-cache show python-is-python3 >/dev/null 2>&1; then
@@ -121,22 +123,22 @@ breakfast virtio_arm64only userdebug
 
 if [[ "$BUILD_TARGET" == "all" || "$BUILD_TARGET" == "x86_64" ]]; then
   breakfast virtio_x86_64 userdebug
-  m recoveryimage
+  m -j"$BUILD_JOBS" recoveryimage
   mv out/target/product/virtio_x86_64/recovery.img ../../recovery_x86_64-userdebug.img
 
   breakfast virtio_x86_64 user
-  m vm-utm-zip otapackage
+  m -j"$BUILD_JOBS" vm-utm-zip otapackage
   mv out/target/product/virtio_x86_64/boot.img ../../boot_x86_64.img
   mv out/target/product/virtio_x86_64/recovery.img ../../recovery_x86_64.img
 fi
 
 if [[ "$BUILD_TARGET" == "all" || "$BUILD_TARGET" == "arm64only" ]]; then
   breakfast virtio_arm64only userdebug
-  m recoveryimage
+  m -j"$BUILD_JOBS" recoveryimage
   mv out/target/product/virtio_arm64only/recovery.img ../../recovery_arm64only-userdebug.img
 
   breakfast virtio_arm64only user
-  m vm-utm-zip otapackage
+  m -j"$BUILD_JOBS" vm-utm-zip otapackage
   ../../scripts/verify-build-identity.sh out/target/product/virtio_arm64only
   mv out/target/product/virtio_arm64only/boot.img ../../boot_arm64only.img
   mv out/target/product/virtio_arm64only/recovery.img ../../recovery_arm64only.img

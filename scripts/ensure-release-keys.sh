@@ -46,6 +46,8 @@ for name in "${KEY_NAMES[@]}"; do
   cp "$KEY_STORE/$name.pk8" "$private_keys/$name.pk8"
   cp "$KEY_STORE/$name.x509.pem" "$private_keys/$name.x509.pem"
 done
+cp "$KEY_STORE/releasekey.pk8" "$private_keys/testkey.pk8"
+cp "$KEY_STORE/releasekey.x509.pem" "$private_keys/testkey.x509.pem"
 
 # Replace standard development certificates so explicitly named modules are
 # not signed with public AOSP test keys.
