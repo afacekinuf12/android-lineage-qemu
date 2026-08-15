@@ -72,7 +72,15 @@ chmod a+x bin/repo
 export PATH="$(realpath .)/bin:$PATH"
 cd android/lineage
 export PATH="$(realpath .)/prebuilts/sdk/tools/linux/bin/:$PATH"
-repo init -u https://github.com/LineageOS/android.git -b lineage-23.2 --git-lfs --no-clone-bundle --depth 1
+if [[ "${SKIP_REPO_SYNC:-false}" == true ]]; then
+  if [[ ! -d .repo || ! -f build/envsetup.sh ]]; then
+    echo "SKIP_REPO_SYNC requires an existing LineageOS source tree." >&2
+    exit 1
+  fi
+  echo "Reusing the existing LineageOS source tree without network sync."
+else
+  repo init -u https://github.com/LineageOS/android.git -b lineage-23.2 --git-lfs --no-clone-bundle --depth 1
+fi
 # Release keys are copied into standard certificate paths after sync. Restore
 # those tracked files first so a later incremental sync starts from a clean tree.
 if [[ -e build/make/.git ]]; then
@@ -94,22 +102,24 @@ if [[ -e build/make/.git ]]; then
     target/product/security/nfc.pk8 \
     target/product/security/nfc.x509.pem
 fi
-sync_complete=false
-for attempt in 1 2 3; do
-  if [[ "$attempt" == 1 ]]; then
-    sync_jobs=$(nproc)
-  else
-    sync_jobs=8
+if [[ "${SKIP_REPO_SYNC:-false}" != true ]]; then
+  sync_complete=false
+  for attempt in 1 2 3; do
+    if [[ "$attempt" == 1 ]]; then
+      sync_jobs=$(nproc)
+    else
+      sync_jobs=8
+    fi
+    if repo sync -c --prune --force-sync --retry-fetches=8 -j "$sync_jobs"; then
+      sync_complete=true
+      break
+    fi
+    sleep $((attempt * 60))
+  done
+  if [[ "$sync_complete" != true ]]; then
+    echo "Failed to sync the Android source tree after three attempts." >&2
+    exit 1
   fi
-  if repo sync -c --prune --force-sync --retry-fetches=8 -j "$sync_jobs"; then
-    sync_complete=true
-    break
-  fi
-  sleep $((attempt * 60))
-done
-if [[ "$sync_complete" != true ]]; then
-  echo "Failed to sync the Android source tree after three attempts." >&2
-  exit 1
 fi
 sed -i 's/-$(LINEAGE_BUILDTYPE)/-jqssun/g' vendor/lineage/config/version.mk
 
