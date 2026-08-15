@@ -242,6 +242,19 @@ def commands_for(message: dict[str, Any]) -> list[list[str]]:
                     str(round(temperature * 10)),
                 ]
             )
+        if "capacityMah" in message:
+            capacity_mah = _number(message, "capacityMah", 100, 20000)
+            charge_counter_uah = round(capacity_mah * 1000 * level / 100)
+            commands.append(
+                [
+                    "shell",
+                    "dumpsys",
+                    "battery",
+                    "set",
+                    "counter",
+                    str(charge_counter_uah),
+                ]
+            )
         return commands
     if message_type == "battery-reset":
         return [["shell", "dumpsys", "battery", "reset"]]

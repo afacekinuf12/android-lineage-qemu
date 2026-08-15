@@ -10,55 +10,10 @@ export BUILD_HOSTNAME=${BUILD_HOSTNAME:-buildhost}
 export BUILD_NUMBER=${BUILD_NUMBER:-$(date -u '+%Y%m%d')}
 export JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:--XX:+DisableAttachMechanism}
 sudo apt update
-sudo apt install -y sudo git android-sdk-platform-tools python3-packaging python3-yaml qemu-utils # libncurses5
-if apt-cache show python-is-python3 >/dev/null 2>&1; then
-  sudo apt install -y python-is-python3
-elif ! command -v python >/dev/null 2>&1; then
-  sudo ln -s /usr/bin/python3 /usr/local/bin/python
-fi
-sudo apt install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf imagemagick ninja-build protobuf-compiler python3-protobuf lib32readline-dev lib32z1-dev libdw-dev libelf-dev lz4 libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev
-if apt-cache show meson-1.5 >/dev/null 2>&1; then
-  sudo apt install -y meson-1.5 glslang-tools python3-mako
-else
-  sudo apt install -y glslang-tools python3-mako python3-pip
-  if ! python3 -m pip --version >/dev/null 2>&1; then
-    sudo apt-get install --reinstall -y python3-pip
-  fi
-  python3 -m pip install --user 'meson==1.5.2'
-  export PATH="$HOME/.local/bin:$PATH"
-fi
-
-if ! python3 -c 'import sys; raise SystemExit(sys.version_info < (3, 8))'; then
-  modern_python=
-  for candidate in \
-    "$HOME/miniconda3/bin/python3" \
-    "$(command -v python3.12 2>/dev/null || true)" \
-    "$(command -v python3.11 2>/dev/null || true)" \
-    "$(command -v python3.10 2>/dev/null || true)" \
-    "$(command -v python3.9 2>/dev/null || true)" \
-    "$(command -v python3.8 2>/dev/null || true)"; do
-    if [[ -n "$candidate" ]] &&
-      "$candidate" -c 'import sys; raise SystemExit(sys.version_info < (3, 8))'; then
-      modern_python=$candidate
-      break
-    fi
-  done
-  if [[ -z "$modern_python" ]]; then
-    echo "LineageOS 23.2 requires Python 3.8 or newer." >&2
-    exit 1
-  fi
-
-  python_env="$(realpath .)/.build-python"
-  if [[ ! -x "$python_env/bin/python3" ]]; then
-    "$modern_python" -m venv "$python_env"
-  fi
-  if ! "$python_env/bin/python3" -c 'import yaml, google.protobuf, mako, packaging' 2>/dev/null; then
-    "$python_env/bin/python3" -m pip install PyYAML protobuf Mako packaging
-  fi
-  export PATH="$python_env/bin:$PATH"
-fi
+sudo apt install -y sudo git android-sdk-platform-tools python-is-python3 python3-yaml qemu-utils # libncurses5
+sudo apt install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf imagemagick protobuf-compiler python3-protobuf lib32readline-dev lib32z1-dev libdw-dev libelf-dev lz4 libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev
+sudo apt install -y meson-1.5 glslang-tools python3-mako
 export LINEAGE_BUILD_PYTHON="$(dirname "$(command -v python3)")"
-
 git config --global user.name "github-actions[bot]"
 git config --global user.email "github-actions[bot]@users.noreply.github.com"
 git config --global trailer.changeid.key "Change-Id"

@@ -90,6 +90,25 @@ discovers the VirtIO device trees. The patched image:
 - allows up to eight USB devices in the ARM64 UTM template; and
 - configures the ARM64 UTM template with four CPUs and 4 GiB of memory.
 
+For Pixel 9 Pro application-layout and resource testing, apply the optional
+compatibility profile before importing the VM. The host should have enough
+memory for a 16 GiB guest:
+
+```shell
+tools/personalize-utm.py LineageOS_on_arm64.utm \
+  --hardware-profile pixel-9-pro-compat
+```
+
+After Android boots, set the matching logical display size and density:
+
+```shell
+tools/apply-display-profile.sh \
+  --serial 127.0.0.1:5555 pixel-9-pro-compat
+```
+
+Reset the display overrides with `--reset`. This profile does not change the
+OpenMobile product identity or claim Pixel-only hardware.
+
 The host bridge in [`host_bridge`](host_bridge) accepts JSON Lines and injects
 motion, rotation, location, and battery test events through ADB. It supports a
 persistent Unix socket, stale-event rejection, ADB health checks, and automatic
@@ -105,7 +124,7 @@ After extracting a new UTM archive, assign a unique VM UUID and locally
 administered MAC address before importing it:
 
 ```shell
-tools/personalize-utm.py LineageOS_on_arm64.utm --name "OpenMobile Device"
+tools/personalize-utm.py LineageOS_on_arm64.utm
 ```
 
 These extensions do not provide a trusted cellular modem, hardware-backed

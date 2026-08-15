@@ -50,14 +50,15 @@ attestation.
 ## Battery test state
 
 ```json
-{"type":"battery","level":75,"status":2,"present":true,"acPowered":true,"temperature":31.2}
+{"type":"battery","level":75,"status":2,"present":true,"acPowered":true,"temperature":31.2,"capacityMah":4700}
 {"type":"battery-reset"}
 ```
 
 Battery events use Android's framework test override. They improve application
 testing but do not create a kernel power-supply device. Optional fields are
 `present`, `acPowered`, `usbPowered`, `wirelessPowered`, and `temperature`
-(degrees Celsius).
+(degrees Celsius). `capacityMah` sets the charge counter from the declared
+capacity and current level; `4700` matches the Pixel 9 Pro capacity baseline.
 
 ## Usage
 

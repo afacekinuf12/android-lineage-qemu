@@ -49,6 +49,55 @@ class PersonalizeUtmTests(unittest.TestCase):
                 first_octet = int(network["MacAddress"].split(":")[0], 16)
                 self.assertEqual(first_octet & 0x03, 0x02)
 
+    def test_default_name_uses_public_product_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            vm = pathlib.Path(directory) / "device.utm"
+            vm.mkdir()
+            config_path = vm / "config.plist"
+            with config_path.open("wb") as destination:
+                plistlib.dump(
+                    {"Information": {"UUID": "old", "Name": "old"}}, destination
+                )
+
+            with mock.patch("sys.argv", ["personalize-utm.py", str(vm)]):
+                self.assertEqual(PERSONALIZE.main(), 0)
+
+            with config_path.open("rb") as source:
+                config = plistlib.load(source)
+            self.assertEqual(config["Information"]["Name"], "OpenMobile One")
+
+    def test_pixel_9_pro_hardware_profile(self):
+        with tempfile.TemporaryDirectory() as directory:
+            vm = pathlib.Path(directory) / "device.utm"
+            vm.mkdir()
+            config_path = vm / "config.plist"
+            with config_path.open("wb") as destination:
+                plistlib.dump(
+                    {
+                        "Information": {"UUID": "old", "Name": "old"},
+                        "System": {"CPUCount": 4, "MemorySize": 4096},
+                        "Display": [{"DynamicResolution": True}],
+                    },
+                    destination,
+                )
+
+            with mock.patch(
+                "sys.argv",
+                [
+                    "personalize-utm.py",
+                    str(vm),
+                    "--hardware-profile",
+                    "pixel-9-pro-compat",
+                ],
+            ):
+                self.assertEqual(PERSONALIZE.main(), 0)
+
+            with config_path.open("rb") as source:
+                config = plistlib.load(source)
+            self.assertEqual(config["System"]["CPUCount"], 8)
+            self.assertEqual(config["System"]["MemorySize"], 16384)
+            self.assertFalse(config["Display"][0]["DynamicResolution"])
+
 
 if __name__ == "__main__":
     unittest.main()

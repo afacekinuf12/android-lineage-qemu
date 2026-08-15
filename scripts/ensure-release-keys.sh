@@ -14,7 +14,7 @@ KEY_NAMES=(
   bluetooth
   nfc
 )
-SUBJECT=${RELEASE_KEY_SUBJECT:-/C=US/O=OpenMobile/OU=Android/CN=OpenMobile Virtual Device}
+SUBJECT=${RELEASE_KEY_SUBJECT:-/C=US/O=OpenMobile/OU=Android/CN=OpenMobile One}
 
 if [[ -z "$ANDROID_ROOT" || ! -d "$ANDROID_ROOT/build/make/target/product/security" ]]; then
   echo "usage: $0 <android-source-root>" >&2

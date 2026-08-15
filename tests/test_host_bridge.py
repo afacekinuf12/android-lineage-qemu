@@ -97,6 +97,7 @@ class HostBridgeTests(unittest.TestCase):
                 "acPowered": True,
                 "usbPowered": False,
                 "temperature": 31.2,
+                "capacityMah": 4700,
             }
         )
         self.assertIn(
@@ -106,6 +107,10 @@ class HostBridgeTests(unittest.TestCase):
         self.assertIn(["shell", "dumpsys", "battery", "set", "usb", "0"], commands)
         self.assertIn(
             ["shell", "dumpsys", "battery", "set", "temp", "312"], commands
+        )
+        self.assertIn(
+            ["shell", "dumpsys", "battery", "set", "counter", "3760000"],
+            commands,
         )
 
     def test_vector_validation(self):

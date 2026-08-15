@@ -7,8 +7,8 @@ hardware claims aligned with capabilities that can actually be supplied.
 
 | Capability | Implementation | Fidelity |
 |------------|----------------|----------|
-| CPU and memory | Apple Silicon HVF, 4 vCPUs, 4 GiB RAM | High for generic ARM64 |
-| Display | VirtIO GPU, software-compatible UTM scanout | Functional, no phone GPU identity |
+| CPU and memory | Apple Silicon HVF; 4 vCPU/4 GiB default or 8 vCPU/16 GiB compatibility profile | High for generic ARM64 |
+| Display | VirtIO GPU; optional 1280 x 2856 at 495 DPI logical profile | Functional, no LTPO panel or phone GPU identity |
 | Wi-Fi APIs | VirtWifi backed by VirtIO Ethernet | Network-compatible, no 802.11 radio |
 | Motion sensors | Cuttlefish Sensors HAL plus host injection | High when bridge is active |
 | Location | GPS test provider plus host injection | App-level location only |
@@ -19,16 +19,23 @@ hardware claims aligned with capabilities that can actually be supplied.
 | Health and power | Cuttlefish Health HAL and generic Power HAL | Virtual-device semantics |
 | Input | USB tablet, mouse, keyboard, and multitouch conversion | Functional |
 
+The optional `pixel-9-pro-compat` profile aligns application-visible resource
+limits and display geometry without changing the OpenMobile identity. Apply it
+with `tools/personalize-utm.py` before import and
+`tools/apply-display-profile.sh` after Android boots.
+
 ## Device Identity
 
-- Public product identity uses the project-owned `OpenMobile` brand while the
-  internal device name remains `virtio_arm64only`.
+- Public product identity uses `OpenMobile One` and `OpenMobile-S1`; the
+  build-only target and device-tree name remain `virtio_arm64only`.
 - User builds use persistent private release keys on the build runner.
+- Existing release keys are never regenerated to rename their certificate
+  subject because doing so would break OTA and platform-signature continuity.
 - Build username and hostname are normalized to `android` and `buildhost`.
 - Extracted UTM bundles must be personalized with `tools/personalize-utm.py`
   before import so cloned instances do not share UUID and MAC addresses.
-- The identity remains explicitly virtual. It does not claim to be a Pixel,
-  Samsung, or other certified physical model.
+- The identity does not claim to be a Pixel, Samsung, or another certified
+  physical model, and does not alter hardware-attestation results.
 
 ## Intentionally Not Claimed
 

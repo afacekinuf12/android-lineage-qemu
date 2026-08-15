@@ -19,13 +19,24 @@ target_files="$PRODUCT_OUT/obj/PACKAGING/target_files_intermediates"
 grep -q '^ro.build.fingerprint=OpenMobile/' "$system_prop"
 grep -q ':user/release-keys$' "$system_prop"
 grep -q '^ro.product.system.brand=OpenMobile$' "$system_prop"
+grep -q '^ro.product.system.device=openmobile_one$' "$system_prop"
 grep -q '^ro.product.system.manufacturer=OpenMobile$' "$system_prop"
-grep -q '^ro.product.system.model=OpenMobile Virtual Device$' "$system_prop"
+grep -q '^ro.product.system.model=OpenMobile One$' "$system_prop"
+grep -q '^ro.product.system.name=openmobile_one$' "$system_prop"
 grep -q '^ro.soc.manufacturer=OpenMobile$' "$vendor_prop"
-grep -q '^ro.soc.model=OpenMobile-Virtual-SoC$' "$vendor_prop"
+grep -q '^ro.soc.model=OpenMobile-S1$' "$vendor_prop"
 
 if grep -Eq 'liuming|n37-007-050|test-keys|eng\.' "$system_prop" "$vendor_prop"; then
   echo "build identity still exposes development metadata" >&2
+  exit 1
+fi
+
+mapfile -t build_props < <(find "$PRODUCT_OUT" -name build.prop -type f)
+if grep -Ehi \
+  '^(ro\.product\..*\.(brand|device|manufacturer|model|name)|ro\..*build\.fingerprint)=' \
+  "${build_props[@]}" |
+  grep -Eqi '=(.*)(qemu|virtio|generic|ranchu|goldfish|emulator|virtual)'; then
+  echo "public build identity still exposes a virtualization identifier" >&2
   exit 1
 fi
 

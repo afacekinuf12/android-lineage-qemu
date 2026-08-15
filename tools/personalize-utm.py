@@ -7,6 +7,15 @@ import uuid
 from pathlib import Path
 
 
+HARDWARE_PROFILES = {
+    "pixel-9-pro-compat": {
+        "cpu_count": 8,
+        "memory_mib": 16384,
+        "dynamic_resolution": False,
+    }
+}
+
+
 def locally_administered_mac() -> str:
     octets = bytearray(secrets.token_bytes(6))
     octets[0] = (octets[0] | 0x02) & 0xFE
@@ -18,7 +27,12 @@ def main() -> int:
         description="Assign unique local identity to an extracted UTM VM."
     )
     parser.add_argument("vm", type=Path, help="path to the .utm bundle")
-    parser.add_argument("--name", default="OpenMobile Virtual Device")
+    parser.add_argument("--name", default="OpenMobile One")
+    parser.add_argument(
+        "--hardware-profile",
+        choices=HARDWARE_PROFILES,
+        help="apply a resource and display compatibility profile",
+    )
     args = parser.parse_args()
 
     config_path = args.vm / "config.plist"
@@ -29,6 +43,12 @@ def main() -> int:
     config["Information"]["Name"] = args.name
     for network in config.get("Network", []):
         network["MacAddress"] = locally_administered_mac()
+    if args.hardware_profile:
+        profile = HARDWARE_PROFILES[args.hardware_profile]
+        config["System"]["CPUCount"] = profile["cpu_count"]
+        config["System"]["MemorySize"] = profile["memory_mib"]
+        for display in config.get("Display", []):
+            display["DynamicResolution"] = profile["dynamic_resolution"]
 
     with config_path.open("wb") as destination:
         plistlib.dump(config, destination, sort_keys=False)
