@@ -15,7 +15,7 @@ index 6ce67ce..268e439 100644
 +PRODUCT_BUILD_PROP_OVERRIDES += \
 +    DeviceName=openmobile_one \
 +    DeviceProduct=openmobile_one \
-+    BuildFingerprint=OpenMobile/openmobile_one/openmobile_one:$(PLATFORM_VERSION_LAST_STABLE)/$(BUILD_ID)/$(BUILD_NUMBER_FROM_FILE):user/release-keys
++    BuildFingerprint=OpenMobile/openmobile_one/openmobile_one:$(PLATFORM_VERSION_LAST_STABLE)/$(BUILD_ID)/$${BUILD_NUMBER}:user/release-keys
 +
  PRODUCT_VENDOR_PROPERTIES += \
      ro.soc.manufacturer=$(PRODUCT_MANUFACTURER) \
