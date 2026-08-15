@@ -51,7 +51,20 @@ jobs:
     if: needs.check.outputs.build == 'true'
     runs-on: ${{ github.event_name == 'workflow_dispatch' && inputs.runner || 'self-hosted' }}
     steps:
+      - name: Clear stale runner proxy
+        run: |
+          git config --global --unset-all http.proxy || true
+          git config --global --unset-all https.proxy || true
+          git config --global --unset-all http.https://github.com.proxy || true
+
       - uses: actions/checkout@v5
+        env:
+          HTTP_PROXY: ""
+          HTTPS_PROXY: ""
+          ALL_PROXY: ""
+          http_proxy: ""
+          https_proxy: ""
+          all_proxy: ""
         with:
           clean: false
 
