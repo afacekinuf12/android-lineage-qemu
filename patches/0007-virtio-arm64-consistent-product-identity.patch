@@ -2,7 +2,16 @@ diff --git a/lineage_virtio_arm64only.mk b/lineage_virtio_arm64only.mk
 index 6ce67ce..268e439 100644
 --- a/lineage_virtio_arm64only.mk
 +++ b/lineage_virtio_arm64only.mk
-@@ -17,9 +17,13 @@
+@@ -6,3 +6,8 @@
++PRODUCT_BUILD_PROP_OVERRIDES += \
++    DeviceName=openmobile_one \
++    DeviceProduct=openmobile_one \
++    BuildFingerprint=OpenMobile/openmobile_one/openmobile_one:$(PLATFORM_VERSION_LAST_STABLE)/$(BUILD_ID)/$${BUILD_NUMBER}:user/release-keys
++
+ # Inherit from those products. Most specific first.
+ $(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit_only.mk)
+ $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base.mk)
+@@ -17,9 +22,9 @@
  PRODUCT_NAME := lineage_virtio_arm64only
  PRODUCT_DEVICE := virtio_arm64only
 -PRODUCT_BRAND := VirtIO
@@ -12,10 +21,6 @@ index 6ce67ce..268e439 100644
 +PRODUCT_MANUFACTURER := OpenMobile
 +PRODUCT_MODEL := OpenMobile One
 -
-+PRODUCT_BUILD_PROP_OVERRIDES += \
-+    DeviceName=openmobile_one \
-+    DeviceProduct=openmobile_one \
-+    BuildFingerprint=OpenMobile/openmobile_one/openmobile_one:$(PLATFORM_VERSION_LAST_STABLE)/$(BUILD_ID)/$${BUILD_NUMBER}:user/release-keys
 +
  PRODUCT_VENDOR_PROPERTIES += \
      ro.soc.manufacturer=$(PRODUCT_MANUFACTURER) \

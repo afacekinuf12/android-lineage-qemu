@@ -27,6 +27,11 @@ on:
         required: false
         type: boolean
         default: false
+      skip_checkout:
+        description: "Reuse the runner's existing workflow checkout"
+        required: false
+        type: boolean
+        default: false
   schedule:
     - cron: "0 0 */16 * *"
 
@@ -57,14 +62,14 @@ jobs:
     runs-on: ${{ github.event_name == 'workflow_dispatch' && inputs.runner || 'self-hosted' }}
     steps:
       - name: Clear stale runner proxy
-        if: github.event_name != 'workflow_dispatch' || inputs.skip_sync != true
+        if: github.event_name != 'workflow_dispatch' || inputs.skip_checkout != true
         run: |
           git config --global --unset-all http.proxy || true
           git config --global --unset-all https.proxy || true
           git config --global --unset-all http.https://github.com.proxy || true
 
       - uses: actions/checkout@v5
-        if: github.event_name != 'workflow_dispatch' || inputs.skip_sync != true
+        if: github.event_name != 'workflow_dispatch' || inputs.skip_checkout != true
         env:
           HTTP_PROXY: ""
           HTTPS_PROXY: ""
@@ -73,7 +78,7 @@ jobs:
           clean: false
 
       - name: Validate cached checkout
-        if: github.event_name == 'workflow_dispatch' && inputs.skip_sync == true
+        if: github.event_name == 'workflow_dispatch' && inputs.skip_checkout == true
         run: |
           test -d .git
           test -x build.sh
