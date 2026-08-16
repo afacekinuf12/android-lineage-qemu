@@ -58,8 +58,8 @@ if grep -Ehi \
   exit 1
 fi
 
-test -f "$permissions/android.hardware.sensor.gyroscope.prebuilt.xml"
-test -f "$permissions/android.hardware.sensor.compass.prebuilt.xml"
+test -f "$permissions/android.hardware.sensor.gyroscope.xml"
+test -f "$permissions/android.hardware.sensor.compass.xml"
 test ! -f "$permissions/android.hardware.sensor.hinge_angle.xml"
 test ! -f "$permissions/android.hardware.sensor.relative_humidity.xml"
 test ! -f "$permissions/android.hardware.sensor.barometer.xml"
