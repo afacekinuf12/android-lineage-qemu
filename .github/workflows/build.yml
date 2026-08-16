@@ -57,18 +57,27 @@ jobs:
     runs-on: ${{ github.event_name == 'workflow_dispatch' && inputs.runner || 'self-hosted' }}
     steps:
       - name: Clear stale runner proxy
+        if: github.event_name != 'workflow_dispatch' || inputs.skip_sync != true
         run: |
           git config --global --unset-all http.proxy || true
           git config --global --unset-all https.proxy || true
           git config --global --unset-all http.https://github.com.proxy || true
 
       - uses: actions/checkout@v5
+        if: github.event_name != 'workflow_dispatch' || inputs.skip_sync != true
         env:
           HTTP_PROXY: ""
           HTTPS_PROXY: ""
           ALL_PROXY: ""
         with:
           clean: false
+
+      - name: Validate cached checkout
+        if: github.event_name == 'workflow_dispatch' && inputs.skip_sync == true
+        run: |
+          test -d .git
+          test -x build.sh
+          git log -1 --oneline
 
       - name: Set ENV
         run: |
@@ -83,7 +92,16 @@ jobs:
           ALL_PROXY: ${{ github.event_name == 'workflow_dispatch' && inputs.proxy || '' }}
           NO_PROXY: localhost,127.0.0.1,10.0.0.0/8,.byted.org
         run: |
-          ./build.sh
+          if ! ./build.sh; then
+            product_out=android/lineage/out/target/product/virtio_arm64only
+            for prop in "$product_out"/system/build.prop "$product_out"/vendor/build.prop; do
+              if [[ -f "$prop" ]]; then
+                echo "Diagnostic properties from $prop:"
+                grep -E '^(ro\.build\.fingerprint|ro\.product\.|ro\.soc\.)' "$prop" || true
+              fi
+            done
+            exit 1
+          fi
 
       - name: Publish ARM64
         if: github.event_name != 'workflow_dispatch' || inputs.target == 'arm64only' || inputs.target == 'all'
