@@ -112,7 +112,7 @@ jobs:
         run: |
           if [[ "${{ inputs.reuse_output }}" == true ]]; then
             product_out=android/lineage/out/target/product/virtio_arm64only
-            scripts/verify-build-identity.sh "$product_out"
+            bash -x scripts/verify-build-identity.sh "$product_out"
             cp "$product_out/boot.img" boot_arm64only.img
             cp "$product_out/recovery.img" recovery_arm64only.img
           elif ! ./build.sh; then
