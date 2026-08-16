@@ -32,6 +32,11 @@ on:
         required: false
         type: boolean
         default: false
+      reuse_output:
+        description: "Verify and publish existing completed build output"
+        required: false
+        type: boolean
+        default: false
   schedule:
     - cron: "0 0 */16 * *"
 
@@ -105,7 +110,12 @@ jobs:
           ALL_PROXY: ${{ github.event_name == 'workflow_dispatch' && inputs.proxy || '' }}
           NO_PROXY: localhost,127.0.0.1,10.0.0.0/8,.byted.org
         run: |
-          if ! ./build.sh; then
+          if [[ "${{ inputs.reuse_output }}" == true ]]; then
+            product_out=android/lineage/out/target/product/virtio_arm64only
+            scripts/verify-build-identity.sh "$product_out"
+            cp "$product_out/boot.img" boot_arm64only.img
+            cp "$product_out/recovery.img" recovery_arm64only.img
+          elif ! ./build.sh; then
             product_out=android/lineage/out/target/product/virtio_arm64only
             for prop in "$product_out"/system/build.prop "$product_out"/vendor/build.prop; do
               if [[ -f "$prop" ]]; then
