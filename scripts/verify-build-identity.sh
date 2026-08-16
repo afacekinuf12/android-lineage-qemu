@@ -16,15 +16,33 @@ permissions="$PRODUCT_OUT/vendor/etc/permissions"
 product_permissions="$PRODUCT_OUT/product/etc/permissions"
 target_files="$PRODUCT_OUT/obj/PACKAGING/target_files_intermediates"
 
-grep -q '^ro.build.fingerprint=OpenMobile/' "$system_prop"
-grep -q ':user/release-keys$' "$system_prop"
-grep -q '^ro.product.system.brand=OpenMobile$' "$system_prop"
-grep -q '^ro.product.system.device=openmobile_one$' "$system_prop"
-grep -q '^ro.product.system.manufacturer=OpenMobile$' "$system_prop"
-grep -q '^ro.product.system.model=OpenMobile One$' "$system_prop"
-grep -q '^ro.product.system.name=openmobile_one$' "$system_prop"
-grep -q '^ro.soc.manufacturer=OpenMobile$' "$vendor_prop"
-grep -q '^ro.soc.model=OpenMobile-S1$' "$vendor_prop"
+require_property() {
+  local file=$1
+  local pattern=$2
+  local property_prefix=$3
+
+  if ! grep -q "$pattern" "$file"; then
+    echo "missing expected property in $file: $pattern" >&2
+    grep "^$property_prefix" "$file" >&2 || true
+    exit 1
+  fi
+}
+
+require_property "$system_prop" '^ro.build.fingerprint=OpenMobile/' \
+  'ro.build.fingerprint='
+require_property "$system_prop" ':user/release-keys$' 'ro.build.'
+require_property "$system_prop" '^ro.product.system.brand=OpenMobile$' \
+  'ro.product.system.'
+require_property "$system_prop" '^ro.product.system.device=openmobile_one$' \
+  'ro.product.system.'
+require_property "$system_prop" '^ro.product.system.manufacturer=OpenMobile$' \
+  'ro.product.system.'
+require_property "$system_prop" '^ro.product.system.model=OpenMobile One$' \
+  'ro.product.system.'
+require_property "$system_prop" '^ro.product.system.name=openmobile_one$' \
+  'ro.product.system.'
+require_property "$vendor_prop" '^ro.soc.manufacturer=OpenMobile$' 'ro.soc.'
+require_property "$vendor_prop" '^ro.soc.model=OpenMobile-S1$' 'ro.soc.'
 
 if grep -Eq 'liuming|n37-007-050|test-keys|eng\.' "$system_prop" "$vendor_prop"; then
   echo "build identity still exposes development metadata" >&2
