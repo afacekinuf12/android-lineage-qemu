@@ -33,14 +33,14 @@ require_property "$system_prop" '^ro.build.fingerprint=OpenMobile/' \
 require_property "$system_prop" ':user/release-keys$' 'ro.build.'
 require_property "$system_prop" '^ro.product.system.brand=OpenMobile$' \
   'ro.product.system.'
-require_property "$system_prop" '^ro.product.system.device=openmobile_one$' \
-  'ro.product.system.'
 require_property "$system_prop" '^ro.product.system.manufacturer=OpenMobile$' \
   'ro.product.system.'
 require_property "$system_prop" '^ro.product.system.model=OpenMobile One$' \
   'ro.product.system.'
-require_property "$system_prop" '^ro.product.system.name=openmobile_one$' \
-  'ro.product.system.'
+require_property "$vendor_prop" '^ro.product.vendor.device=openmobile_one$' \
+  'ro.product.vendor.'
+require_property "$vendor_prop" '^ro.product.vendor.name=openmobile_one$' \
+  'ro.product.vendor.'
 require_property "$vendor_prop" '^ro.soc.manufacturer=OpenMobile$' 'ro.soc.'
 require_property "$vendor_prop" '^ro.soc.model=OpenMobile-S1$' 'ro.soc.'
 
@@ -51,7 +51,7 @@ fi
 
 mapfile -t build_props < <(find "$PRODUCT_OUT" -name build.prop -type f)
 if grep -Ehi \
-  '^(ro\.product\..*\.(brand|device|manufacturer|model|name)|ro\..*build\.fingerprint)=' \
+  '^(ro\.product\..*\.(brand|manufacturer|model)|ro\..*build\.fingerprint)=' \
   "${build_props[@]}" |
   grep -Eqi '=(.*)(qemu|virtio|generic|ranchu|goldfish|emulator|virtual)'; then
   echo "public build identity still exposes a virtualization identifier" >&2
