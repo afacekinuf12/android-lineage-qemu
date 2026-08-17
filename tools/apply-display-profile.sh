@@ -48,7 +48,7 @@ if [[ "$reset" == true && -n "$profile" ]]; then
   exit 2
 fi
 
-adb_command=(adb -s "$serial")
+adb_command=("${ADB:-adb}" -s "$serial")
 "${adb_command[@]}" wait-for-device
 
 if [[ "$reset" == true ]]; then

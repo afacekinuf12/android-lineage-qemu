@@ -52,7 +52,7 @@ from source configuration alone.
 | `ro.soc.manufacturer` | Google | OpenMobile | Runtime value should be confirmed |
 | `ro.soc.model` | Tensor G4 family value | `OpenMobile-S1` | Property text does not establish hardware equivalence |
 | `ro.hardware*` | Pixel platform-specific values | VirtIO/QEMU platform-specific values | Low-level values must remain truthful |
-| `ro.boot.*` | Pixel bootloader and verified-boot state | VM firmware and virtual boot state | Runtime capture required |
+| `ro.boot.*` | Pixel bootloader and verified-boot state | `OpenMobile-1.0` bootloader and unique serial via SMBIOS; verified-boot state stays truthful (`orange`) | Boot chain and attestation are not spoofed |
 
 ## Implemented Compatibility Improvements
 
@@ -61,7 +61,9 @@ The optional `pixel-9-pro-compat` profile now provides:
 - 8 virtual CPUs and 16 GiB guest memory in the UTM configuration;
 - stable UTM display sizing while the profile is active;
 - a 1280 x 2856 Android logical display at 495 DPI;
-- a reversible display override through `tools/apply-display-profile.sh`; and
+- a reversible display override through `tools/apply-display-profile.sh`;
+- a device-unique SMBIOS serial (`ro.serialno`) and an `OpenMobile` bootloader
+  version (`ro.bootloader`), replacing the `unknown` / `0.0.0` defaults; and
 - a `capacityMah` battery event field that maps 4700 mAh and the current level
   to Android's charge-counter test value.
 

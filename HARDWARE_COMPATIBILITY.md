@@ -31,6 +31,10 @@ with `tools/personalize-utm.py` before import and
 - The UTM compatibility profile supplies `OpenMobile` / `OpenMobile-One`
   SMBIOS values so LineageOS libinit does not replace runtime product
   properties with QEMU defaults.
+- The same profile assigns a device-unique SMBIOS serial (`ro.serialno`, e.g.
+  `OM…`) and an `OpenMobile` bootloader version (`ro.bootloader`) so runtime
+  identity no longer reports `unknown` or `0.0.0`. Re-applying with
+  `--preserve-identity` keeps the existing serial and is idempotent.
 - User builds use persistent private release keys on the build runner.
 - Existing release keys are never regenerated to rename their certificate
   subject because doing so would break OTA and platform-signature continuity.

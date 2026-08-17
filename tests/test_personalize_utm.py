@@ -98,15 +98,58 @@ class PersonalizeUtmTests(unittest.TestCase):
             self.assertEqual(config["System"]["CPUCount"], 8)
             self.assertEqual(config["System"]["MemorySize"], 16384)
             self.assertFalse(config["Display"][0]["DynamicResolution"])
-            self.assertEqual(
-                config["QEMU"]["AdditionalArguments"],
-                [
-                    "-smbios",
-                    "type=1,manufacturer=OpenMobile,product=OpenMobile-One",
-                    "-smbios",
-                    "type=3,manufacturer=OpenMobile",
-                ],
+            arguments = config["QEMU"]["AdditionalArguments"]
+            self.assertIn("-smbios", arguments)
+            self.assertTrue(
+                any("type=0,vendor=OpenMobile,version=OpenMobile-1.0" == a for a in arguments)
             )
+            self.assertTrue(
+                any("type=3,manufacturer=OpenMobile" == a for a in arguments)
+            )
+            type1 = next(a for a in arguments if a.startswith("type=1,"))
+            self.assertIn("manufacturer=OpenMobile", type1)
+            self.assertIn("product=OpenMobile-One", type1)
+            self.assertRegex(type1, r"serial=OM[0-9A-F]{14}")
+
+    def test_profile_is_idempotent_and_preserves_serial(self):
+        with tempfile.TemporaryDirectory() as directory:
+            vm = pathlib.Path(directory) / "device.utm"
+            vm.mkdir()
+            config_path = vm / "config.plist"
+            with config_path.open("wb") as destination:
+                plistlib.dump(
+                    {
+                        "Information": {"UUID": "fixed", "Name": "fixed"},
+                        "System": {"CPUCount": 4, "MemorySize": 4096},
+                        "Display": [{"DynamicResolution": True}],
+                        "QEMU": {"AdditionalArguments": []},
+                    },
+                    destination,
+                )
+
+            argv = [
+                "personalize-utm.py",
+                str(vm),
+                "--preserve-identity",
+                "--hardware-profile",
+                "pixel-9-pro-compat",
+            ]
+            with mock.patch("sys.argv", argv):
+                self.assertEqual(PERSONALIZE.main(), 0)
+            with config_path.open("rb") as source:
+                first = plistlib.load(source)["QEMU"]["AdditionalArguments"]
+            serial = PERSONALIZE.existing_serial(first)
+            self.assertTrue(serial.startswith("OM"))
+
+            # Re-applying with --preserve-identity keeps the serial and does not
+            # accumulate duplicate managed SMBIOS pairs.
+            with mock.patch("sys.argv", argv):
+                self.assertEqual(PERSONALIZE.main(), 0)
+            with config_path.open("rb") as source:
+                second = plistlib.load(source)["QEMU"]["AdditionalArguments"]
+            self.assertEqual(first, second)
+            self.assertEqual(PERSONALIZE.existing_serial(second), serial)
+            self.assertEqual(second.count("-smbios"), 3)
 
     def test_preserves_existing_identity_when_requested(self):
         with tempfile.TemporaryDirectory() as directory:
