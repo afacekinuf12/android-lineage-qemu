@@ -75,8 +75,8 @@ setprop_ro ro.boot.hardware caiman
 setprop_ro ro.boot.hardware.sku caiman
 setprop_ro ro.boot.product.hardware.sku caiman
 setprop_ro ro.soc.manufacturer Google
-setprop_ro ro.soc.model "Tensor G4"
-setprop_ro ro.hardware.chipname "Tensor G4"
+setprop_ro ro.soc.model zumapro
+setprop_ro ro.hardware.chipname zumapro
 
 # SoC platform / board. Pixel 9 Pro (Tensor G4) reports the "zumapro" platform;
 # leaving these unset or generic is a common emulator tell.

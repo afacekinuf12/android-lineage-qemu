@@ -42,7 +42,7 @@ require_property "$vendor_prop" '^ro.product.vendor.device=caiman$' \
 require_property "$vendor_prop" '^ro.product.vendor.name=caiman$' \
   'ro.product.vendor.'
 require_property "$vendor_prop" '^ro.soc.manufacturer=Google$' 'ro.soc.'
-require_property "$vendor_prop" '^ro.soc.model=Tensor G4$' 'ro.soc.'
+require_property "$vendor_prop" '^ro.soc.model=zumapro$' 'ro.soc.'
 
 if grep -Eq 'liuming|n37-007-050|test-keys|eng\.' "$system_prop" "$vendor_prop"; then
   echo "build identity still exposes development metadata" >&2

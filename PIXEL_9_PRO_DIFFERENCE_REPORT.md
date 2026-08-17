@@ -54,7 +54,7 @@ be proven from source configuration alone.
 | `ro.build.version.release` | OTA-version dependent | `16` | Capture both devices on the test date |
 | `ro.build.version.security_patch` | OTA-version dependent | `2026-02-05` via resetprop | Keep in sync with the mirrored OTA |
 | `ro.soc.manufacturer` | Google | `Google` | Build override + resetprop |
-| `ro.soc.model` | Tensor G4 family value | `Tensor G4` (build.prop + resetprop) | Property text does not establish hardware equivalence |
+| `ro.soc.model` | `zumapro` (Tensor G4 platform) | `zumapro` (build.prop + resetprop) | Property text does not establish hardware equivalence |
 | `ro.hardware*` | Pixel platform-specific values | `caiman` reported via resetprop; HAL resolution stays on the real VirtIO/QEMU platform | String aligned; kernel cmdline unchanged to avoid HAL bootloop |
 | `ro.boot.*` | Pixel bootloader and verified-boot state | `ripcurrentpro-*` bootloader and unique serial via SMBIOS; `verifiedbootstate` string set to `green` by resetprop while the real AVB state stays `orange` | Boot chain and attestation are not spoofed |
 
