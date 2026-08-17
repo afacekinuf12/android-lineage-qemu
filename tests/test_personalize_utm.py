@@ -77,6 +77,7 @@ class PersonalizeUtmTests(unittest.TestCase):
                         "Information": {"UUID": "old", "Name": "old"},
                         "System": {"CPUCount": 4, "MemorySize": 4096},
                         "Display": [{"DynamicResolution": True}],
+                        "QEMU": {"AdditionalArguments": []},
                     },
                     destination,
                 )
@@ -97,6 +98,41 @@ class PersonalizeUtmTests(unittest.TestCase):
             self.assertEqual(config["System"]["CPUCount"], 8)
             self.assertEqual(config["System"]["MemorySize"], 16384)
             self.assertFalse(config["Display"][0]["DynamicResolution"])
+            self.assertEqual(
+                config["QEMU"]["AdditionalArguments"],
+                [
+                    "-smbios",
+                    "type=1,manufacturer=OpenMobile,product=OpenMobile-One",
+                    "-smbios",
+                    "type=3,manufacturer=OpenMobile",
+                ],
+            )
+
+    def test_preserves_existing_identity_when_requested(self):
+        with tempfile.TemporaryDirectory() as directory:
+            vm = pathlib.Path(directory) / "device.utm"
+            vm.mkdir()
+            config_path = vm / "config.plist"
+            with config_path.open("wb") as destination:
+                plistlib.dump(
+                    {
+                        "Information": {"UUID": "fixed", "Name": "fixed"},
+                        "Network": [{"MacAddress": "fixed"}],
+                    },
+                    destination,
+                )
+
+            with mock.patch(
+                "sys.argv",
+                ["personalize-utm.py", str(vm), "--preserve-identity"],
+            ):
+                self.assertEqual(PERSONALIZE.main(), 0)
+
+            with config_path.open("rb") as source:
+                config = plistlib.load(source)
+            self.assertEqual(config["Information"]["UUID"], "fixed")
+            self.assertEqual(config["Information"]["Name"], "fixed")
+            self.assertEqual(config["Network"][0]["MacAddress"], "fixed")
 
 
 if __name__ == "__main__":

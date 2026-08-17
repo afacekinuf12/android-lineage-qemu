@@ -107,7 +107,9 @@ tools/apply-display-profile.sh \
 ```
 
 Reset the display overrides with `--reset`. This profile does not change the
-OpenMobile product identity or claim Pixel-only hardware.
+OpenMobile product identity or claim Pixel-only hardware. It also supplies
+OpenMobile SMBIOS values to keep LineageOS runtime properties consistent with
+the signed build identity.
 
 The host bridge in [`host_bridge`](host_bridge) accepts JSON Lines and injects
 motion, rotation, location, and battery test events through ADB. It supports a

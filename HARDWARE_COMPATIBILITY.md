@@ -28,6 +28,9 @@ with `tools/personalize-utm.py` before import and
 
 - Public product identity uses `OpenMobile One` and `OpenMobile-S1`; the
   build-only target and device-tree name remain `virtio_arm64only`.
+- The UTM compatibility profile supplies `OpenMobile` / `OpenMobile-One`
+  SMBIOS values so LineageOS libinit does not replace runtime product
+  properties with QEMU defaults.
 - User builds use persistent private release keys on the build runner.
 - Existing release keys are never regenerated to rename their certificate
   subject because doing so would break OTA and platform-signature continuity.

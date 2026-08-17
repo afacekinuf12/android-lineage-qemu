@@ -43,7 +43,7 @@ from source configuration alone.
 |---|---|---|---|
 | `ro.product.*.brand` | `google` | `OpenMobile` | Stable product identity |
 | `ro.product.*.manufacturer` | `Google` | `OpenMobile` | Stable product identity |
-| `ro.product.*.model` | `Pixel 9 Pro` | `OpenMobile One` | Stable product identity |
+| `ro.product.*.model` | `Pixel 9 Pro` | `OpenMobile One` in the build, `OpenMobile-One` at runtime | SMBIOS-safe OpenMobile identity |
 | `ro.product.*.device` | `caiman` | `openmobile_one` | Pixel codename is documented by Google |
 | `ro.product.*.name` | Build-variant dependent, normally based on `caiman` | `openmobile_one` | Capture the physical phone |
 | `ro.*.build.fingerprint` | Google-signed, OTA-version dependent | OpenMobile private release build | Never compare against a hard-coded old Pixel fingerprint |
