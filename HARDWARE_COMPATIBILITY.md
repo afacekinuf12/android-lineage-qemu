@@ -26,23 +26,29 @@ with `tools/personalize-utm.py` before import and
 
 ## Device Identity
 
-- Public product identity uses `OpenMobile One` and `OpenMobile-S1`; the
+- Public product identity presents a Google Pixel 9 Pro (`caiman`); the
   build-only target and device-tree name remain `virtio_arm64only`.
-- The UTM compatibility profile supplies `OpenMobile` / `OpenMobile-One`
+- The UTM compatibility profile supplies space-free `Google` / `caiman`
   SMBIOS values so LineageOS libinit does not replace runtime product
   properties with QEMU defaults.
-- The same profile assigns a device-unique SMBIOS serial (`ro.serialno`, e.g.
-  `OM…`) and an `OpenMobile` bootloader version (`ro.bootloader`) so runtime
-  identity no longer reports `unknown` or `0.0.0`. Re-applying with
-  `--preserve-identity` keeps the existing serial and is idempotent.
+- The same profile assigns a device-unique SMBIOS serial (`ro.serialno`) and a
+  `ripcurrentpro-*` bootloader version (`ro.bootloader`) so runtime identity no
+  longer reports `unknown` or `0.0.0`. Re-applying with `--preserve-identity`
+  keeps the existing serial and is idempotent.
+- The `magisk/pixel-9-pro-identity/` module rewrites the read-only `ro.boot.*`,
+  `ro.hardware`, per-partition fingerprints and security-patch level at
+  `post-fs-data`, which build.prop cannot cover, and ships a `pif.json` for
+  PlayIntegrityFix. The kernel cmdline is left unchanged so `init` still
+  resolves the real VirtIO HAL set instead of a non-existent `caiman` one.
 - User builds use persistent private release keys on the build runner.
 - Existing release keys are never regenerated to rename their certificate
   subject because doing so would break OTA and platform-signature continuity.
 - Build username and hostname are normalized to `android` and `buildhost`.
 - Extracted UTM bundles must be personalized with `tools/personalize-utm.py`
   before import so cloned instances do not share UUID and MAC addresses.
-- The identity does not claim to be a Pixel, Samsung, or another certified
-  physical model, and does not alter hardware-attestation results.
+- The Pixel identity aligns reported strings only. It does not create a Pixel
+  hardware trust chain: verified boot stays `orange`, and key attestation and
+  Play Integrity hardware verdicts still reflect the virtual device.
 
 ## Intentionally Not Claimed
 

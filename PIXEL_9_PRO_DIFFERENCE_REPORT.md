@@ -1,8 +1,11 @@
 # Pixel 9 Pro Difference Report
 
-This report compares the current OpenMobile ARM64 VM profile with a physical
-Google Pixel 9 Pro. It is a compatibility and research baseline, not an
-identity-spoofing guide.
+This report compares the ARM64 VM profile with a physical Google Pixel 9 Pro.
+The VM is now configured to present a Pixel 9 Pro (`caiman`) software identity
+across build, SMBIOS and runtime layers for local research. This aligns
+reported strings only; it does not create the Pixel hardware trust chain
+(verified boot, key attestation, StrongBox, Widevine L1), which a QEMU VM
+cannot supply.
 
 ## Scope and Confidence
 
@@ -12,15 +15,16 @@ fingerprint, build ID, security patch level, radio firmware, and HAL versions
 change with OTA releases and must be captured from the specific physical phone
 being tested.
 
-OpenMobile values come from the build patches and compatibility documentation
-in this repository. Items marked "runtime capture required" cannot be proven
-from source configuration alone.
+The VM values come from the build patches, the SMBIOS profile in
+`tools/personalize-utm.py`, and the runtime resetprop module in
+`magisk/pixel-9-pro-identity/`. Items marked "runtime capture required" cannot
+be proven from source configuration alone.
 
 ## Summary
 
-| Area | Pixel 9 Pro | OpenMobile VM | Difference |
+| Area | Pixel 9 Pro | Configured VM identity | Difference |
 |---|---|---|---|
-| Public identity | Google Pixel 9 Pro, `caiman` | OpenMobile One, `openmobile_one` | Intentionally different |
+| Public identity | Google Pixel 9 Pro, `caiman` | Google Pixel 9 Pro, `caiman` (build + SMBIOS + resetprop) | String identity aligned; hardware trust chain absent |
 | CPU | Google Tensor G4, 8 physical CPU cores | 8 generic ARM64 vCPUs with compatibility profile | Core count aligned; topology and CPU identity differ |
 | Memory | 16 GB RAM | 16 GiB with compatibility profile | Capacity aligned; memory hardware differs |
 | Display | 1280 x 2856, 495 PPI, LTPO OLED, 1-120 Hz | 1280 x 2856 at 495 DPI logical override through VirtIO GPU | Geometry aligned; panel and refresh behavior differ |
@@ -39,20 +43,20 @@ from source configuration alone.
 
 ## Android Property Baseline
 
-| Property family | Pixel 9 Pro expected value | OpenMobile configured value | Notes |
+| Property family | Pixel 9 Pro expected value | Configured VM value | Notes |
 |---|---|---|---|
-| `ro.product.*.brand` | `google` | `OpenMobile` | Stable product identity |
-| `ro.product.*.manufacturer` | `Google` | `OpenMobile` | Stable product identity |
-| `ro.product.*.model` | `Pixel 9 Pro` | `OpenMobile One` in the build, `OpenMobile-One` at runtime | SMBIOS-safe OpenMobile identity |
-| `ro.product.*.device` | `caiman` | `openmobile_one` | Pixel codename is documented by Google |
-| `ro.product.*.name` | Build-variant dependent, normally based on `caiman` | `openmobile_one` | Capture the physical phone |
-| `ro.*.build.fingerprint` | Google-signed, OTA-version dependent | OpenMobile private release build | Never compare against a hard-coded old Pixel fingerprint |
-| `ro.build.version.release` | OTA-version dependent | Android 16 / LineageOS 23.2 build | Capture both devices on the test date |
-| `ro.build.version.security_patch` | OTA-version dependent | LineageOS source state | Capture both devices |
-| `ro.soc.manufacturer` | Google | OpenMobile | Runtime value should be confirmed |
-| `ro.soc.model` | Tensor G4 family value | `OpenMobile-S1` | Property text does not establish hardware equivalence |
-| `ro.hardware*` | Pixel platform-specific values | VirtIO/QEMU platform-specific values | Low-level values must remain truthful |
-| `ro.boot.*` | Pixel bootloader and verified-boot state | `OpenMobile-1.0` bootloader and unique serial via SMBIOS; verified-boot state stays truthful (`orange`) | Boot chain and attestation are not spoofed |
+| `ro.product.*.brand` | `google` | `google` | Build override + resetprop |
+| `ro.product.*.manufacturer` | `Google` | `Google` | Build override + resetprop |
+| `ro.product.*.model` | `Pixel 9 Pro` | `Pixel 9 Pro` | build.prop + resetprop; SMBIOS carries space-free `caiman` |
+| `ro.product.*.device` | `caiman` | `caiman` | `DeviceProduct/DeviceName` override + resetprop |
+| `ro.product.*.name` | Build-variant dependent, normally based on `caiman` | `caiman` | Confirm against the physical phone |
+| `ro.*.build.fingerprint` | Google-signed, OTA-version dependent | `google/caiman/caiman:16/BP4A.260205.001/13561507:user/release-keys` | Signed with private release keys, not Google keys; update to the current OTA when captured |
+| `ro.build.version.release` | OTA-version dependent | `16` | Capture both devices on the test date |
+| `ro.build.version.security_patch` | OTA-version dependent | `2026-02-05` via resetprop | Keep in sync with the mirrored OTA |
+| `ro.soc.manufacturer` | Google | `Google` | Build override + resetprop |
+| `ro.soc.model` | Tensor G4 family value | `Tensor G4` (build.prop + resetprop) | Property text does not establish hardware equivalence |
+| `ro.hardware*` | Pixel platform-specific values | `caiman` reported via resetprop; HAL resolution stays on the real VirtIO/QEMU platform | String aligned; kernel cmdline unchanged to avoid HAL bootloop |
+| `ro.boot.*` | Pixel bootloader and verified-boot state | `ripcurrentpro-*` bootloader and unique serial via SMBIOS; `verifiedbootstate` string set to `green` by resetprop while the real AVB state stays `orange` | Boot chain and attestation are not spoofed |
 
 ## Implemented Compatibility Improvements
 
@@ -62,10 +66,23 @@ The optional `pixel-9-pro-compat` profile now provides:
 - stable UTM display sizing while the profile is active;
 - a 1280 x 2856 Android logical display at 495 DPI;
 - a reversible display override through `tools/apply-display-profile.sh`;
-- a device-unique SMBIOS serial (`ro.serialno`) and an `OpenMobile` bootloader
-  version (`ro.bootloader`), replacing the `unknown` / `0.0.0` defaults; and
+- a device-unique SMBIOS serial (`ro.serialno`) and a `ripcurrentpro-*`
+  bootloader version (`ro.bootloader`), replacing the `unknown` / `0.0.0`
+  defaults; and
 - a `capacityMah` battery event field that maps 4700 mAh and the current level
   to Android's charge-counter test value.
+
+The Pixel 9 Pro (`caiman`) software identity is applied in three layers:
+
+- **Build**: `patches/0007-virtio-arm64-consistent-product-identity.patch` sets
+  `PRODUCT_BRAND/MANUFACTURER/MODEL`, the `BuildFingerprint`, and
+  `DeviceName/DeviceProduct=caiman`.
+- **SMBIOS**: `tools/personalize-utm.py` supplies space-free
+  `Google` / `caiman` DMI values plus the unique serial.
+- **Runtime**: the `magisk/pixel-9-pro-identity/` module rewrites the read-only
+  `ro.boot.*`, `ro.hardware`, per-partition fingerprints and
+  `ro.build.version.security_patch` that build.prop cannot cover, and ships a
+  `pif.json` for PlayIntegrityFix (basic-integrity only).
 
 Apply the resource profile before importing the VM:
 
@@ -114,7 +131,45 @@ Inject the Pixel 9 Pro battery-capacity baseline:
 - Physical biometrics, proximity, ambient light, barometer, temperature and
   thermal zones.
 
+## Emulator-Detection Vector Matrix
+
+This matrix summarizes the emulator/VM-detection signals collected from public
+research (e.g. `strazzere/anti-emulator`, `samohyes/Anti-vm-in-android`, common
+`Build`/`getprop` checks, and OpenGL/sensor/telephony probes) and states how
+each is handled here. Note this VM is a QEMU `virt` (VirtIO) machine, not the
+goldfish/ranchu Android emulator, so several classic markers do not exist to
+begin with. Runtime state is verifiable with `tools/audit-fingerprint.sh`.
+
+| Vector | Real device | This VM | Status |
+|---|---|---|---|
+| `Build` brand/manufacturer/model/device/product | Pixel 9 Pro / caiman | Set at build + resetprop | Fixed |
+| `ro.build.fingerprint` | Google-signed | `google/caiman/...:user/release-keys` | Fixed (string); signature mismatch remains |
+| `ro.hardware` / `ro.boot.hardware` | `zumapro`/device value | `caiman` via resetprop | Fixed (string); kernel cmdline untouched to avoid HAL bootloop |
+| `ro.board.platform` / `ro.product.board` | `zumapro` / `caiman` | Set via resetprop | Fixed |
+| `ro.serialno` / `ro.bootloader` | device values | Unique SMBIOS serial + `ripcurrentpro-*` | Fixed |
+| `ro.kernel.qemu`, `qemu.*`, `init.svc.qemud` | absent | Not present on `virt`; also scrubbed by resetprop | Fixed |
+| `/dev/qemu_pipe`, `/dev/socket/qemud`, `libc_malloc_debug_qemu.so`, `/sys/qemu_trace`, `qemu-props` | absent | Not created by the `virt` board (goldfish/ranchu-only) | Not present |
+| `/proc/tty/drivers` goldfish, `/proc/cpuinfo` x86 | absent | ARM64 `virt`, no goldfish | Not present |
+| MAC `02:00:00:00:00:00` | vendor MAC | Random locally-administered MAC per instance | Fixed |
+| Sensors (accel/gyro/compass) | present | Declared via patch 0008 + host bridge | Fixed |
+| GL/Vulkan renderer | vendor GPU string | `virtio-gpu-pci` + software renderer; renderer string still non-Pixel | Residual tell |
+| Telephony IMEI/IMSI/operator "Android"/`1555521xxxx` | carrier values | No modem emulated; no default emulator numbers either | Not emulated |
+| `ro.boot.verifiedbootstate` | `green` (Google-signed) | `green` string via resetprop; real AVB stays `orange` | Cosmetic only |
+| Play Integrity / key attestation / Widevine L1 | hardware-backed | Not achievable in a VM | Hard limit |
+
+Residual tells that source/property changes cannot remove are the GL/Vulkan
+renderer identity, `/proc/cpuinfo` CPU implementer, the real `orange`
+verified-boot/attestation state, and the `release-keys` fingerprint versus the
+private signing key. These require host GPU passthrough or physical security
+hardware and are out of scope.
+
 ## Runtime Capture Procedure
+
+Audit the running VM against the detection matrix at any time:
+
+```shell
+ADB=/opt/homebrew/bin/adb tools/audit-fingerprint.sh --serial 127.0.0.1:5555
+```
 
 Collect both devices with the same platform-tools version:
 

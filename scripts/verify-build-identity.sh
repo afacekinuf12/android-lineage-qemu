@@ -28,21 +28,21 @@ require_property() {
   fi
 }
 
-require_property "$system_prop" '^ro.build.fingerprint=OpenMobile/' \
+require_property "$system_prop" '^ro.build.fingerprint=google/caiman/caiman:' \
   'ro.build.fingerprint='
 require_property "$system_prop" ':user/release-keys$' 'ro.build.'
-require_property "$system_prop" '^ro.product.system.brand=OpenMobile$' \
+require_property "$system_prop" '^ro.product.system.brand=google$' \
   'ro.product.system.'
-require_property "$system_prop" '^ro.product.system.manufacturer=OpenMobile$' \
+require_property "$system_prop" '^ro.product.system.manufacturer=Google$' \
   'ro.product.system.'
-require_property "$system_prop" '^ro.product.system.model=OpenMobile One$' \
+require_property "$system_prop" '^ro.product.system.model=Pixel 9 Pro$' \
   'ro.product.system.'
-require_property "$vendor_prop" '^ro.product.vendor.device=openmobile_one$' \
+require_property "$vendor_prop" '^ro.product.vendor.device=caiman$' \
   'ro.product.vendor.'
-require_property "$vendor_prop" '^ro.product.vendor.name=openmobile_one$' \
+require_property "$vendor_prop" '^ro.product.vendor.name=caiman$' \
   'ro.product.vendor.'
-require_property "$vendor_prop" '^ro.soc.manufacturer=OpenMobile$' 'ro.soc.'
-require_property "$vendor_prop" '^ro.soc.model=OpenMobile-S1$' 'ro.soc.'
+require_property "$vendor_prop" '^ro.soc.manufacturer=Google$' 'ro.soc.'
+require_property "$vendor_prop" '^ro.soc.model=Tensor G4$' 'ro.soc.'
 
 if grep -Eq 'liuming|n37-007-050|test-keys|eng\.' "$system_prop" "$vendor_prop"; then
   echo "build identity still exposes development metadata" >&2
@@ -53,7 +53,7 @@ mapfile -t build_props < <(find "$PRODUCT_OUT" -name build.prop -type f)
 if grep -Ehi \
   '^(ro\.product\..*\.(brand|manufacturer|model)|ro\..*build\.fingerprint)=' \
   "${build_props[@]}" |
-  grep -Eqi '=(.*)(qemu|virtio|generic|ranchu|goldfish|emulator|virtual)'; then
+  grep -Eqi '=(.*)(qemu|virtio|generic|ranchu|goldfish|emulator|virtual|openmobile)'; then
   echo "public build identity still exposes a virtualization identifier" >&2
   exit 1
 fi

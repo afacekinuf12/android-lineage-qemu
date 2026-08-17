@@ -1,0 +1,6 @@
+id=pixel_9_pro_identity
+name=Pixel 9 Pro Runtime Identity
+version=v1.0.0
+versionCode=1
+author=android-lineage-qemu
+description=Aligns runtime read-only properties (ro.boot.*, ro.hardware, per-partition fingerprints) with a Google Pixel 9 Pro (caiman) for local research on this LineageOS/QEMU VM. Does not and cannot provide hardware-backed attestation.

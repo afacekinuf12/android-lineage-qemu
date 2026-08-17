@@ -64,7 +64,7 @@ class PersonalizeUtmTests(unittest.TestCase):
 
             with config_path.open("rb") as source:
                 config = plistlib.load(source)
-            self.assertEqual(config["Information"]["Name"], "OpenMobile One")
+            self.assertEqual(config["Information"]["Name"], "Pixel 9 Pro")
 
     def test_pixel_9_pro_hardware_profile(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -101,15 +101,18 @@ class PersonalizeUtmTests(unittest.TestCase):
             arguments = config["QEMU"]["AdditionalArguments"]
             self.assertIn("-smbios", arguments)
             self.assertTrue(
-                any("type=0,vendor=OpenMobile,version=OpenMobile-1.0" == a for a in arguments)
+                any(
+                    "type=0,vendor=Google,version=ripcurrentpro-1.5-13561507" == a
+                    for a in arguments
+                )
             )
             self.assertTrue(
-                any("type=3,manufacturer=OpenMobile" == a for a in arguments)
+                any("type=3,manufacturer=Google" == a for a in arguments)
             )
             type1 = next(a for a in arguments if a.startswith("type=1,"))
-            self.assertIn("manufacturer=OpenMobile", type1)
-            self.assertIn("product=OpenMobile-One", type1)
-            self.assertRegex(type1, r"serial=OM[0-9A-F]{14}")
+            self.assertIn("manufacturer=Google", type1)
+            self.assertIn("product=caiman", type1)
+            self.assertRegex(type1, r"serial=[0-9A-F]{14}")
 
     def test_profile_is_idempotent_and_preserves_serial(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -139,7 +142,7 @@ class PersonalizeUtmTests(unittest.TestCase):
             with config_path.open("rb") as source:
                 first = plistlib.load(source)["QEMU"]["AdditionalArguments"]
             serial = PERSONALIZE.existing_serial(first)
-            self.assertTrue(serial.startswith("OM"))
+            self.assertRegex(serial, r"^[0-9A-F]{14}$")
 
             # Re-applying with --preserve-identity keeps the serial and does not
             # accumulate duplicate managed SMBIOS pairs.
