@@ -33,6 +33,7 @@ apply_patch() {
 apply_patch device/virt/virt-common 0001-virt-common-enable-compat-hardware.patch
 apply_patch device/virt/virt-common 0006-virt-common-declare-bridged-gps.patch
 apply_patch device/virt/virt-common 0008-virt-common-align-declared-hardware.patch
+apply_patch device/virt/virt-common 0009-virt-common-pixel-platform-identity.patch
 apply_patch device/virt/virtio_arm64 0002-virtio-arm64-expand-utm-hardware.patch
 apply_patch device/virt/virtio_arm64 0005-virtio-arm64-use-compatible-utm-display.patch
 apply_patch device/virt/virtio_arm64only 0007-virtio-arm64-consistent-product-identity.patch

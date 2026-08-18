@@ -131,6 +131,26 @@ jobs:
             exit 1
           fi
 
+      - name: Prune stale UTM packages
+        run: |
+          # The runner reuses its out/ tree across builds, so old dated
+          # UTM-VM*.zip packages accumulate and the Publish/Attest globs would
+          # upload every historical build. Keep only the newest package per
+          # target so the release carries a single, current UTM image.
+          for target in virtio_arm64only virtio_x86_64; do
+            utm_dir="android/lineage/out/target/product/$target/VirtualMachine/UTM"
+            [[ -d "$utm_dir" ]] || continue
+            newest=$(ls -t "$utm_dir"/UTM-VM*.zip 2>/dev/null | head -1)
+            [[ -n "$newest" ]] || continue
+            for f in "$utm_dir"/UTM-VM*.zip; do
+              if [[ "$f" != "$newest" ]]; then
+                echo "pruning stale UTM package: $f"
+                rm -f "$f"
+              fi
+            done
+            echo "kept: $newest"
+          done
+
       - name: Publish ARM64
         if: github.event_name != 'workflow_dispatch' || inputs.target == 'arm64only' || inputs.target == 'all'
         uses: softprops/action-gh-release@v2

@@ -26,7 +26,7 @@ be proven from source configuration alone.
 |---|---|---|---|
 | Public identity | Google Pixel 9 Pro, `caiman` | Google Pixel 9 Pro, `caiman` (build + SMBIOS + resetprop) | String identity aligned; hardware trust chain absent |
 | CPU | Google Tensor G4, 8 physical CPU cores | 8 generic ARM64 vCPUs with compatibility profile | Core count aligned; topology and CPU identity differ |
-| Memory | 16 GB RAM | 16 GiB with compatibility profile | Capacity aligned; memory hardware differs |
+| Memory | 16 GB RAM | Up to 16 GiB, auto-capped to a safe share of host RAM | Capacity aspirational; capped so the guest never starves the macOS host |
 | Display | 1280 x 2856, 495 PPI, LTPO OLED, 1-120 Hz | 1280 x 2856 at 495 DPI logical override through VirtIO GPU | Geometry aligned; panel and refresh behavior differ |
 | GPU | Tensor-integrated Mali GPU | `virtio-gpu-pci`, software-compatible renderer | Different driver, extensions and performance |
 | Cellular | Physical 4G/5G modem, nano-SIM and eSIM | None | Not emulated |
@@ -62,7 +62,8 @@ be proven from source configuration alone.
 
 The optional `pixel-9-pro-compat` profile now provides:
 
-- 8 virtual CPUs and 16 GiB guest memory in the UTM configuration;
+- 8 virtual CPUs and up to 16 GiB guest memory, auto-capped to a safe share of
+  host RAM so the macOS host keeps headroom;
 - stable UTM display sizing while the profile is active;
 - a 1280 x 2856 Android logical display at 495 DPI;
 - a reversible display override through `tools/apply-display-profile.sh`;
@@ -144,8 +145,8 @@ begin with. Runtime state is verifiable with `tools/audit-fingerprint.sh`.
 |---|---|---|---|
 | `Build` brand/manufacturer/model/device/product | Pixel 9 Pro / caiman | Set at build + resetprop | Fixed |
 | `ro.build.fingerprint` | Google-signed | `google/caiman/...:user/release-keys` | Fixed (string); signature mismatch remains |
-| `ro.hardware` / `ro.boot.hardware` | `zumapro`/device value | `caiman` via resetprop | Fixed (string); kernel cmdline untouched to avoid HAL bootloop |
-| `ro.board.platform` / `ro.product.board` | `zumapro` / `caiman` | Set via resetprop | Fixed |
+| `ro.board.platform` / `ro.product.board` | `zumapro` / `caiman` | `zumapro`/`caiman` baked in via libinit_virt vendor_init override | Fixed at build time (no Magisk) |
+| `ro.hardware` / `ro.boot.hardware` | `zumapro`/device value | Stays `virtio`; cannot be safely changed pre-HAL (bootloops) — only a post-HAL resetprop module can | Residual tell without root |
 | `ro.serialno` / `ro.bootloader` | device values | Unique SMBIOS serial + `ripcurrentpro-*` | Fixed |
 | `ro.kernel.qemu`, `qemu.*`, `init.svc.qemud` | absent | Not present on `virt`; also scrubbed by resetprop | Fixed |
 | `/dev/qemu_pipe`, `/dev/socket/qemud`, `libc_malloc_debug_qemu.so`, `/sys/qemu_trace`, `qemu-props` | absent | Not created by the `virt` board (goldfish/ranchu-only) | Not present |

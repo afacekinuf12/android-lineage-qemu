@@ -1,0 +1,35 @@
+diff --git a/libraries/libinit/libinit_virt.cpp b/libraries/libinit/libinit_virt.cpp
+index 9feb0a9..1111111 100644
+--- a/libraries/libinit/libinit_virt.cpp
++++ b/libraries/libinit/libinit_virt.cpp
+@@ -31,13 +31,30 @@ static void set_misc_properties() {
+         }
+     }
+ }
++
++// Align the platform/board identity strings with a Google Pixel 9 Pro (caiman
++// on the Tensor G4 "zumapro" platform). These are consumed only as identity
++// strings, never for HAL module path resolution, so overriding them here in
++// vendor_init is safe. ro.hardware / ro.boot.hardware are deliberately NOT
++// touched: init resolves the VirtIO HAL set from them and a "caiman" value
++// would fail to load any HAL. Overriding ro.hardware, if ever wanted, must
++// happen after HAL load (e.g. a post-fs-data resetprop module).
++static void set_pixel_platform_identity() {
++    property_override("ro.board.platform", "zumapro");
++    property_override("ro.product.board", "zumapro");
++    property_override("ro.product.vendor.board", "caiman");
++    property_override("ro.hardware.chipname", "zumapro");
++    property_override("ro.soc.manufacturer", "Google");
++    property_override("ro.soc.model", "zumapro");
++}
+ 
+ void vendor_process_bootenv_virt() {
+     vendor_process_bootenv_mainline_common();
+ }
+ 
+ void vendor_load_properties_virt() {
+     vendor_load_properties_mainline_common();
+     set_misc_properties();
+     set_properties_from_dmi_id();
++    set_pixel_platform_identity();
+ }

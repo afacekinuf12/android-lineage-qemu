@@ -4,6 +4,8 @@ import argparse
 import plistlib
 import re
 import secrets
+import shutil
+import subprocess
 import uuid
 from pathlib import Path
 
@@ -11,7 +13,10 @@ from pathlib import Path
 HARDWARE_PROFILES = {
     "pixel-9-pro-compat": {
         "cpu_count": 8,
-        "memory_mib": 16384,
+        # Aspirational memory matching a real Pixel 9 Pro (16 GiB). This is a
+        # ceiling, not a literal setting: apply_memory() caps it to a safe
+        # share of host RAM so the guest never starves the macOS host.
+        "memory_mib_max": 16384,
         "dynamic_resolution": False,
         # ro.bootloader value. Must be space-free because UTM re-splits each
         # AdditionalArguments array element on whitespace. The authoritative
@@ -19,6 +24,38 @@ HARDWARE_PROFILES = {
         "bootloader_version": "ripcurrentpro-1.5-13561507",
     }
 }
+
+
+def host_memory_mib() -> int:
+    """Return host physical memory in MiB, or 0 if it cannot be determined."""
+    sysctl = shutil.which("sysctl")
+    if not sysctl:
+        return 0
+    try:
+        out = subprocess.run(
+            [sysctl, "-n", "hw.memsize"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        return int(out.stdout.strip()) // (1024 * 1024)
+    except (ValueError, OSError, subprocess.SubprocessError):
+        return 0
+
+
+def safe_memory_mib(requested_mib: int, host_mib: int) -> int:
+    """Cap the requested guest memory to a safe share of host RAM.
+
+    Reserve headroom for macOS and UTM/QEMU itself: never hand the guest more
+    than ~55% of host RAM, and always leave at least 6 GiB for the host. When
+    host memory is unknown (host_mib == 0) the request is returned unchanged.
+    """
+    if host_mib <= 0:
+        return requested_mib
+    share_cap = int(host_mib * 0.55)
+    headroom_cap = host_mib - 6144
+    cap = max(min(share_cap, headroom_cap), 2048)
+    return min(requested_mib, cap)
 
 
 def locally_administered_mac() -> str:
@@ -89,6 +126,19 @@ def main() -> int:
         choices=HARDWARE_PROFILES,
         help="apply a resource and display compatibility profile",
     )
+    parser.add_argument(
+        "--memory-mib",
+        type=int,
+        default=None,
+        help="override guest memory (MiB); still capped to a safe share of "
+        "host RAM unless --allow-oversized-memory is given",
+    )
+    parser.add_argument(
+        "--allow-oversized-memory",
+        action="store_true",
+        help="skip the host-RAM safety cap (use only if you know the host "
+        "has memory to spare)",
+    )
     args = parser.parse_args()
 
     config_path = args.vm / "config.plist"
@@ -103,7 +153,12 @@ def main() -> int:
     if args.hardware_profile:
         profile = HARDWARE_PROFILES[args.hardware_profile]
         config["System"]["CPUCount"] = profile["cpu_count"]
-        config["System"]["MemorySize"] = profile["memory_mib"]
+        requested = args.memory_mib or profile["memory_mib_max"]
+        if args.allow_oversized_memory:
+            memory = requested
+        else:
+            memory = safe_memory_mib(requested, host_memory_mib())
+        config["System"]["MemorySize"] = memory
         for display in config.get("Display", []):
             display["DynamicResolution"] = profile["dynamic_resolution"]
         arguments = config["QEMU"].setdefault("AdditionalArguments", [])

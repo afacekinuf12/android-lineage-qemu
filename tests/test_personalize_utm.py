@@ -90,12 +90,13 @@ class PersonalizeUtmTests(unittest.TestCase):
                     "--hardware-profile",
                     "pixel-9-pro-compat",
                 ],
-            ):
+            ), mock.patch.object(PERSONALIZE, "host_memory_mib", return_value=0):
                 self.assertEqual(PERSONALIZE.main(), 0)
 
             with config_path.open("rb") as source:
                 config = plistlib.load(source)
             self.assertEqual(config["System"]["CPUCount"], 8)
+            # host_memory_mib mocked to 0 (unknown) -> aspirational ceiling kept.
             self.assertEqual(config["System"]["MemorySize"], 16384)
             self.assertFalse(config["Display"][0]["DynamicResolution"])
             arguments = config["QEMU"]["AdditionalArguments"]
@@ -153,6 +154,47 @@ class PersonalizeUtmTests(unittest.TestCase):
             self.assertEqual(first, second)
             self.assertEqual(PERSONALIZE.existing_serial(second), serial)
             self.assertEqual(second.count("-smbios"), 3)
+
+    def test_safe_memory_caps_to_host_share(self):
+        # 16 GiB host: request 16384 must be capped so the host keeps headroom.
+        capped = PERSONALIZE.safe_memory_mib(16384, 16384)
+        self.assertLessEqual(capped, int(16384 * 0.55))
+        self.assertLessEqual(capped, 16384 - 6144)
+        self.assertGreaterEqual(capped, 2048)
+        # Roomy host: a modest request passes through unchanged.
+        self.assertEqual(PERSONALIZE.safe_memory_mib(8192, 65536), 8192)
+        # Unknown host memory: request returned as-is.
+        self.assertEqual(PERSONALIZE.safe_memory_mib(16384, 0), 16384)
+
+    def test_memory_override_and_cap_applied(self):
+        with tempfile.TemporaryDirectory() as directory:
+            vm = pathlib.Path(directory) / "device.utm"
+            vm.mkdir()
+            config_path = vm / "config.plist"
+            with config_path.open("wb") as destination:
+                plistlib.dump(
+                    {
+                        "Information": {"UUID": "old", "Name": "old"},
+                        "System": {"CPUCount": 4, "MemorySize": 4096},
+                        "Display": [{"DynamicResolution": True}],
+                        "QEMU": {"AdditionalArguments": []},
+                    },
+                    destination,
+                )
+            argv = [
+                "personalize-utm.py",
+                str(vm),
+                "--hardware-profile",
+                "pixel-9-pro-compat",
+            ]
+            # On a simulated 16 GiB host the aspirational 16384 is capped.
+            with mock.patch("sys.argv", argv), mock.patch.object(
+                PERSONALIZE, "host_memory_mib", return_value=16384
+            ):
+                self.assertEqual(PERSONALIZE.main(), 0)
+            with config_path.open("rb") as source:
+                mem = plistlib.load(source)["System"]["MemorySize"]
+            self.assertLessEqual(mem, 16384 - 6144)
 
     def test_preserves_existing_identity_when_requested(self):
         with tempfile.TemporaryDirectory() as directory:
