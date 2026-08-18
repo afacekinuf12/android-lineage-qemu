@@ -1,0 +1,66 @@
+diff --git a/contexts/file_contexts_test_data b/contexts/file_contexts_test_data
+index 5974570..8c01711 100644
+--- a/contexts/file_contexts_test_data
++++ b/contexts/file_contexts_test_data
+@@ -1365,3 +1365,4 @@
+ /mnt/pre_reboot_dexopt                                            pre_reboot_dexopt_file
+ 
+ /second_stage_resources/overlay_remounter                         overlay_remounter_exec
++/system/bin/prop_service                                     prop_service_exec
+diff --git a/private/domain.te b/private/domain.te
+index bdc185c..e88e07c 100644
+--- a/private/domain.te
++++ b/private/domain.te
+@@ -766,12 +766,14 @@ neverallow { domain -shell -init -adbd -heapprofd -crash_dump } shell_test_data_
+ neverallow heapprofd shell_test_data_file:file { no_w_file_perms no_x_file_perms };
+ neverallow { domain -shell -init -adbd } shell_test_data_file:sock_file *;
+ 
+-# Only the init property service should write to /data/property and /dev/__properties__
+-neverallow { domain -init } property_data_file:dir no_w_dir_perms;
+-neverallow { domain -init } property_data_file:file { no_w_file_perms no_x_file_perms };
+-neverallow { domain -init } property_type:file { no_w_file_perms no_x_file_perms };
+-neverallow { domain -init } properties_device:file { no_w_file_perms no_x_file_perms };
+-neverallow { domain -init } properties_serial:file { no_w_file_perms no_x_file_perms };
++# Only the init property service should write to /data/property and /dev/__properties__.
++# prop_service (device/virt) is a deliberate local exception performing
++# resetprop-style read-only rewrites after HAL resolution; research VMs only.
++neverallow { domain -init -prop_service } property_data_file:dir no_w_dir_perms;
++neverallow { domain -init -prop_service } property_data_file:file { no_w_file_perms no_x_file_perms };
++neverallow { domain -init -prop_service } property_type:file { no_w_file_perms no_x_file_perms };
++neverallow { domain -init -prop_service } properties_device:file { no_w_file_perms no_x_file_perms };
++neverallow { domain -init -prop_service } properties_serial:file { no_w_file_perms no_x_file_perms };
+ 
+ # Nobody should be doing writes to /system & /vendor
+ # These partitions are intended to be read-only and must never be
+diff --git a/private/file_contexts b/private/file_contexts
+index bc79eeb..0144e20 100644
+--- a/private/file_contexts
++++ b/private/file_contexts
+@@ -970,3 +970,4 @@
+ #############################
+ # For overlays
+ /second_stage_resources/overlay_remounter u:object_r:overlay_remounter_exec:s0
++/system/bin/prop_service    u:object_r:prop_service_exec:s0
+diff --git a/private/prop_service.te b/private/prop_service.te
+new file mode 100644
+index 0000000..fd10182
+--- /dev/null
++++ b/private/prop_service.te
+@@ -0,0 +1,17 @@
++type prop_service, domain, coredomain;
++type prop_service_exec, exec_type, file_type, system_file_type;
++
++init_daemon_domain(prop_service)
++
++# prop_service performs resetprop-style read-only property rewrites after HAL
++# resolution (post-fs-data). Writing the property-area device node is reserved
++# for init by the neverallows in domain.te; those are excepted for this single
++# domain so the permissions below compile. Every other domain stays fully
++# constrained. Only the property-area backing files are granted -- NOT the
++# broad property_type attribute, which would collide with per-property
++# neverallows.
++allow prop_service properties_device:file create_file_perms;
++allow prop_service properties_serial:file { write relabelto };
++
++# Read the override table shipped in /system_ext/etc (labeled system_file).
++allow prop_service system_file:file r_file_perms;

@@ -1,0 +1,144 @@
+diff --git a/configs/prop/prop_overrides.conf b/configs/prop/prop_overrides.conf
+new file mode 100644
+index 0000000..db3c54b
+--- /dev/null
++++ b/configs/prop/prop_overrides.conf
+@@ -0,0 +1,13 @@
++# Data-driven property override table for prop_service (resetprop-style).
++# Each line is "key=value". Blank lines and lines starting with '#' are ignored.
++# Applied at post-fs-data, after the real VirtIO HALs are resolved, so read-only
++# hardware identifiers can safely diverge from the truthful boot values.
++#
++# Pixel 9 Pro (caiman / Tensor G4 "zumapro") runtime identity. These are the
++# read-only values that build.prop and vendor_init cannot safely set because
++# they are consumed for HAL path resolution during early boot.
++ro.hardware=caiman
++ro.boot.hardware=caiman
++ro.boot.hardware.sku=caiman
++ro.boot.product.hardware.sku=caiman
++ro.hardware.chipname=zumapro
+diff --git a/services/prop_service/Android.bp b/services/prop_service/Android.bp
+new file mode 100644
+index 0000000..ffa6a5c
+--- /dev/null
++++ b/services/prop_service/Android.bp
+@@ -0,0 +1,10 @@
++cc_binary {
++    name: "prop_service",
++    srcs: ["prop_service.cpp"],
++    init_rc: ["prop_service.rc"],
++    bootstrap: true,
++    shared_libs: [
++        "libbase",
++        "liblog",
++    ],
++}
+diff --git a/services/prop_service/prop_service.cpp b/services/prop_service/prop_service.cpp
+new file mode 100644
+index 0000000..0398274
+--- /dev/null
++++ b/services/prop_service/prop_service.cpp
+@@ -0,0 +1,65 @@
++#define LOG_TAG "prop_service"
++
++#include <android-base/file.h>
++#include <android-base/logging.h>
++#include <android-base/strings.h>
++
++#define _REALLY_INCLUDE_SYS__SYSTEM_PROPERTIES_H_
++#include <sys/_system_properties.h>
++
++#include <string>
++#include <vector>
++
++using android::base::ReadFileToString;
++using android::base::Split;
++using android::base::Trim;
++using std::string;
++
++// Path to the data-driven override table. Each non-comment line is "key=value".
++// Lines starting with '#' and blank lines are ignored. This makes the set of
++// overridden properties configurable without rebuilding the binary.
++constexpr char kConfigPath[] = "/system_ext/etc/prop_overrides.conf";
++
++// resetprop-style override: rewrite an existing (including read-only) property
++// in place via the property area, or add it if absent. This bypasses the
++// property_service write-once guard the same way Magisk resetprop does, which
++// is why it must run in a domain permitted to write the property area.
++static void override_property(const string& key, const string& value) {
++    auto* pi = const_cast<prop_info*>(__system_property_find(key.c_str()));
++    if (pi != nullptr) {
++        __system_property_update(pi, value.c_str(), value.length());
++        LOG(INFO) << "updated " << key << "=" << value;
++    } else {
++        __system_property_add(key.c_str(), key.length(), value.c_str(), value.length());
++        LOG(INFO) << "added " << key << "=" << value;
++    }
++}
++
++int main() {
++    string content;
++    if (!ReadFileToString(kConfigPath, &content)) {
++        LOG(INFO) << "no override table at " << kConfigPath << ", nothing to do";
++        return EXIT_SUCCESS;
++    }
++
++    for (const auto& raw : Split(content, "\n")) {
++        string line = Trim(raw);
++        if (line.empty() || line[0] == '#') continue;
++
++        auto eq = line.find('=');
++        if (eq == string::npos) {
++            LOG(WARNING) << "ignoring malformed line: " << line;
++            continue;
++        }
++
++        string key = Trim(line.substr(0, eq));
++        string value = Trim(line.substr(eq + 1));
++        if (key.empty()) {
++            LOG(WARNING) << "ignoring line with empty key: " << line;
++            continue;
++        }
++        override_property(key, value);
++    }
++
++    return EXIT_SUCCESS;
++}
+diff --git a/services/prop_service/prop_service.rc b/services/prop_service/prop_service.rc
+new file mode 100644
+index 0000000..143a605
+--- /dev/null
++++ b/services/prop_service/prop_service.rc
+@@ -0,0 +1,14 @@
++service prop_service /system/bin/prop_service
++    class core
++    user root
++    group root
++    oneshot
++    disabled
++    seclabel u:r:prop_service:s0
++
++# Run after /data is mounted and, crucially, after the real VirtIO HALs have
++# been resolved from the truthful ro.hardware value in earlier init. Overriding
++# ro.hardware before HAL resolution would leave the device unable to load any
++# HAL; running here lets the reported value diverge safely.
++on post-fs-data
++    start prop_service
+diff --git a/virt-common.mk b/virt-common.mk
+index aaaaaaa..bbbbbbb 100644
+--- a/virt-common.mk
++++ b/virt-common.mk
+@@ -48,6 +48,13 @@ endif
+ PRODUCT_PACKAGES += \
+     setup_sound_card
+ 
++# Runtime property override service (resetprop-style)
++PRODUCT_PACKAGES += \
++    prop_service
++
++PRODUCT_COPY_FILES += \
++    $(VIRT_COMMON_PATH)/configs/prop/prop_overrides.conf:$(TARGET_COPY_OUT_SYSTEM_EXT)/etc/prop_overrides.conf
++
+ # Bluetooth
+ ifneq ($(PRODUCT_IS_ATV),true)
+ ifneq ($(PRODUCT_IS_AUTOMOTIVE),true)
