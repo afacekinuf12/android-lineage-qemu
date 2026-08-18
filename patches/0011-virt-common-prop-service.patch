@@ -35,15 +35,17 @@ index 0000000..ffa6a5c
 +}
 diff --git a/services/prop_service/prop_service.cpp b/services/prop_service/prop_service.cpp
 new file mode 100644
-index 0000000..0398274
+index 0000000..5a5a5a5
 --- /dev/null
 +++ b/services/prop_service/prop_service.cpp
-@@ -0,0 +1,65 @@
+@@ -0,0 +1,74 @@
 +#define LOG_TAG "prop_service"
 +
 +#include <android-base/file.h>
 +#include <android-base/logging.h>
 +#include <android-base/strings.h>
++
++#include <sys/system_properties.h>
 +
 +#define _REALLY_INCLUDE_SYS__SYSTEM_PROPERTIES_H_
 +#include <sys/_system_properties.h>
@@ -77,6 +79,13 @@ index 0000000..0398274
 +}
 +
 +int main() {
++    // Remap the property area read-write (like init/resetprop). The default
++    // read-only mapping a normal process gets would SIGSEGV on update.
++    if (__system_property_area_init() != 0) {
++        LOG(ERROR) << "__system_property_area_init failed; cannot override";
++        return EXIT_FAILURE;
++    }
++
 +    string content;
 +    if (!ReadFileToString(kConfigPath, &content)) {
 +        LOG(INFO) << "no override table at " << kConfigPath << ", nothing to do";
