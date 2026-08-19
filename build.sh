@@ -132,6 +132,7 @@ breakfast virtio_arm64only userdebug
 git -C device/virt/virt-common checkout -- \
   configs/kernel/virt-common.config \
   configs/misc/grubenv.txt \
+  libraries/libinit/libinit_virt.cpp \
   virt-common.mk
 git -C device/virt/virtio_arm64 checkout -- vm_templates/utm/config.plist
 git -C device/virt/virtio_arm64only checkout -- lineage_virtio_arm64only.mk

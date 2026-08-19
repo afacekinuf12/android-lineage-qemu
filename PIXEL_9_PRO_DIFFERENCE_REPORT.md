@@ -146,7 +146,7 @@ begin with. Runtime state is verifiable with `tools/audit-fingerprint.sh`.
 | `Build` brand/manufacturer/model/device/product | Pixel 9 Pro / caiman | Set at build + resetprop | Fixed |
 | `ro.build.fingerprint` | Google-signed | `google/caiman/...:user/release-keys` | Fixed (string); signature mismatch remains |
 | `ro.board.platform` / `ro.product.board` | `zumapro` / `caiman` | `zumapro`/`caiman` baked in via libinit_virt vendor_init override | Fixed at build time (no Magisk) |
-| `ro.hardware` / `ro.boot.hardware` | `zumapro`/device value | `caiman` via libinit_virt vendor_init override (runs after the HAL rc import, so no bootloop) | Fixed at build time (no Magisk) |
+| `ro.hardware` / `ro.boot.hardware` | `zumapro`/device value | Kept truthful (`virtio`) at build time; `caiman` disguise deferred to a post-boot resetprop step. Overriding it in vendor_init caused a HAL bootloop and was removed | String disguise runtime-only |
 | `ro.serialno` / `ro.bootloader` | device values | Unique SMBIOS serial + `ripcurrentpro-*` | Fixed |
 | `ro.kernel.qemu`, `qemu.*`, `init.svc.qemud` | absent | Not present on the `virt` board | Not present |
 | `/dev/qemu_pipe`, `/dev/socket/qemud`, `libc_malloc_debug_qemu.so`, `/sys/qemu_trace`, `qemu-props` | absent | Not created by the `virt` board (goldfish/ranchu-only) | Not present |
@@ -166,23 +166,30 @@ hardware and are out of scope.
 
 ## Platform identity override (vendor_init)
 
-`ro.hardware`, `ro.board.platform`, `ro.product.board` and the SoC strings are
-read-only and cannot be set from build.prop, but they can be overridden safely
-in `vendor_init`:
+`ro.board.platform`, `ro.product.board` and the SoC strings are read-only and
+cannot be set from build.prop, but they can be overridden safely in
+`vendor_init`:
 
 - `patches/0009` adds `set_pixel_platform_identity()` to
   `device/virt/virt-common/libraries/libinit/libinit_virt.cpp`, called from
-  `vendor_load_properties_virt()`. It uses `property_override()` (the same
-  mechanism resetprop uses) to set `ro.hardware`/`ro.boot.hardware`=`caiman`,
-  `ro.board.platform`/`ro.product.board`=`zumapro`, `ro.soc.*`, etc.
-- This is safe with respect to HAL loading because of init ordering:
-  `SecondStageMain` calls `LoadBootScripts()` (which resolves
-  `import /vendor/etc/init/hw/init.${ro.hardware}.rc` against the truthful
-  `virtio` value) BEFORE it calls `vendor_load_properties()`. The HAL rc import
-  has already happened by the time the override runs, so no HAL fails to load
-  and there is no bootloop. Because this works, no post-fs-data resetprop
-  service and no SELinux property-area exception are needed — the AOSP
-  neverallows stay intact.
+  `vendor_load_properties_virt()`. It uses `property_override()` to set
+  `ro.board.platform`/`ro.product.board`=`zumapro`, `ro.product.vendor.board`,
+  `ro.hardware.chipname` and `ro.soc.*`. These are consumed only as identity
+  strings, never to resolve a HAL rc import path, so overriding them here is
+  safe.
+- **`ro.hardware`/`ro.boot.hardware` are deliberately NOT overridden here.**
+  `vendor_load_properties()` runs from `PropertyInit()` ->
+  `PropertyLoadBootDefaults()`, which `SecondStageMain` calls BEFORE
+  `LoadBootScripts()`. `LoadBootScripts()` then expands
+  `import /vendor/etc/init/hw/init.${ro.hardware}.rc`. Rewriting `ro.hardware`
+  to `caiman` in vendor_init made init import a non-existent `init.caiman.rc`,
+  so the VirtIO vendor HAL services never started and the device bootlooped.
+  (Verified against LineageOS `lineage-23.2` `system/core/init/init.cpp`
+  `SecondStageMain` and `property_service.cpp`
+  `PropertyLoadBootDefaults`.) `ro.hardware` therefore keeps its truthful
+  `virtio` value at build time; the `caiman` string disguise, if needed, must
+  be applied at runtime after boot via resetprop, which runs long after
+  `LoadBootScripts()` and cannot affect HAL loading.
 
 ## Runtime Capture Procedure
 
