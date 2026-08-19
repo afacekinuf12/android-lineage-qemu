@@ -146,9 +146,9 @@ begin with. Runtime state is verifiable with `tools/audit-fingerprint.sh`.
 | `Build` brand/manufacturer/model/device/product | Pixel 9 Pro / caiman | Set at build + resetprop | Fixed |
 | `ro.build.fingerprint` | Google-signed | `google/caiman/...:user/release-keys` | Fixed (string); signature mismatch remains |
 | `ro.board.platform` / `ro.product.board` | `zumapro` / `caiman` | `zumapro`/`caiman` baked in via libinit_virt vendor_init override | Fixed at build time (no Magisk) |
-| `ro.hardware` / `ro.boot.hardware` | `zumapro`/device value | `caiman` via the built-in prop_service (post-fs-data, source-integrated resetprop); kernel cmdline stays truthful so HALs still load | Fixed at runtime without Magisk |
+| `ro.hardware` / `ro.boot.hardware` | `zumapro`/device value | `caiman` via libinit_virt vendor_init override (runs after the HAL rc import, so no bootloop) | Fixed at build time (no Magisk) |
 | `ro.serialno` / `ro.bootloader` | device values | Unique SMBIOS serial + `ripcurrentpro-*` | Fixed |
-| `ro.kernel.qemu`, `qemu.*`, `init.svc.qemud` | absent | Not present on `virt`; also scrubbed by resetprop | Fixed |
+| `ro.kernel.qemu`, `qemu.*`, `init.svc.qemud` | absent | Not present on the `virt` board | Not present |
 | `/dev/qemu_pipe`, `/dev/socket/qemud`, `libc_malloc_debug_qemu.so`, `/sys/qemu_trace`, `qemu-props` | absent | Not created by the `virt` board (goldfish/ranchu-only) | Not present |
 | `/proc/tty/drivers` goldfish, `/proc/cpuinfo` x86 | absent | ARM64 `virt`, no goldfish | Not present |
 | MAC `02:00:00:00:00:00` | vendor MAC | Random locally-administered MAC per instance | Fixed |
@@ -164,27 +164,25 @@ verified-boot/attestation state, and the `release-keys` fingerprint versus the
 private signing key. These require host GPU passthrough or physical security
 hardware and are out of scope.
 
-## Built-in resetprop (prop_service)
+## Platform identity override (vendor_init)
 
-`ro.hardware` and other read-only boot properties cannot be set from build.prop
-or vendor_init because early init resolves the VirtIO HAL set from them; a
-`caiman` value before HAL load would bootloop. They are instead rewritten after
-HAL resolution by a source-integrated resetprop-style service:
+`ro.hardware`, `ro.board.platform`, `ro.product.board` and the SoC strings are
+read-only and cannot be set from build.prop, but they can be overridden safely
+in `vendor_init`:
 
-- `device/virt/virt-common/services/prop_service` — a small native binary
-  (`bootstrap: true`, so it may call the platform `__system_property_add/update`)
-  that reads `/system_ext/etc/prop_overrides.conf` (`key=value` per line) at
-  `on post-fs-data` and rewrites each property in place. Add or change any
-  property by editing the config; no rebuild of the binary is needed.
-- `patches/0010` grants this one SELinux domain (`prop_service`, coredomain)
-  the property-area write that `system/sepolicy/private/domain.te` otherwise
-  reserves for `init`. This is a deliberate, contained weakening of the
-  platform property-area guarantee — every other domain stays fully
-  constrained — and it makes the build non-CTS-compliant. It is intended for
-  local research VMs, consistent with the other identity overrides here.
-
-The default `prop_overrides.conf` sets `ro.hardware`, `ro.boot.hardware*` and
-`ro.hardware.chipname` to the caiman/zumapro values.
+- `patches/0009` adds `set_pixel_platform_identity()` to
+  `device/virt/virt-common/libraries/libinit/libinit_virt.cpp`, called from
+  `vendor_load_properties_virt()`. It uses `property_override()` (the same
+  mechanism resetprop uses) to set `ro.hardware`/`ro.boot.hardware`=`caiman`,
+  `ro.board.platform`/`ro.product.board`=`zumapro`, `ro.soc.*`, etc.
+- This is safe with respect to HAL loading because of init ordering:
+  `SecondStageMain` calls `LoadBootScripts()` (which resolves
+  `import /vendor/etc/init/hw/init.${ro.hardware}.rc` against the truthful
+  `virtio` value) BEFORE it calls `vendor_load_properties()`. The HAL rc import
+  has already happened by the time the override runs, so no HAL fails to load
+  and there is no bootloop. Because this works, no post-fs-data resetprop
+  service and no SELinux property-area exception are needed — the AOSP
+  neverallows stay intact.
 
 ## Runtime Capture Procedure
 
