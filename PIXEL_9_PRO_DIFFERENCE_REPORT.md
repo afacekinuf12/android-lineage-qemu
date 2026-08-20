@@ -185,8 +185,10 @@ cannot be set from build.prop, but they can be overridden safely in
   `PropertyLoadBootDefaults()`, which `SecondStageMain` calls BEFORE
   `LoadBootScripts()`. `LoadBootScripts()` then expands
   `import /vendor/etc/init/hw/init.${ro.hardware}.rc`. Rewriting `ro.hardware`
-  to `caiman` in vendor_init made init import a non-existent `init.caiman.rc`,
-  so the VirtIO vendor HAL services never started and the device bootlooped.
+  to `caiman` in vendor_init changed the early hardware service selector and
+  the device bootlooped. Installing a byte-identical `init.caiman.rc` alias was
+  tested and did not make the override safe, so the alias and override were
+  removed together.
   (Verified against LineageOS `lineage-23.2` `system/core/init/init.cpp`
   `SecondStageMain` and `property_service.cpp`
   `PropertyLoadBootDefaults`.) `ro.hardware` therefore keeps its truthful

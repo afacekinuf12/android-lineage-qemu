@@ -136,7 +136,6 @@ git -C device/virt/virt-common checkout -- \
   virt-common.mk
 git -C device/virt/virtio_arm64 checkout -- vm_templates/utm/config.plist
 git -C device/virt/virtio_arm64only checkout -- lineage_virtio_arm64only.mk
-git -C device/virt/virtio-common checkout -- device-common.mk
 git -C external/mesa checkout -- android/mesa3d_cross.mk
 ../../patches/apply.sh "$(pwd)"
 
