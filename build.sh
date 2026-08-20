@@ -139,7 +139,15 @@ git -C device/virt/virtio_arm64only checkout -- lineage_virtio_arm64only.mk
 # Restore files touched by older patch series so cached runners converge on the
 # current source state even after the init.caiman.rc workaround was removed.
 git -C device/virt/virtio-common checkout -- device-common.mk
-git -C external/mesa checkout -- android/mesa3d_cross.mk
+git -C external/mesa checkout -- \
+  android/mesa3d_cross.mk \
+  src/gallium/drivers/llvmpipe/lp_screen.c \
+  src/gallium/drivers/softpipe/sp_screen.c \
+  src/gallium/drivers/virgl/virgl_screen.c \
+  src/gallium/frontends/lavapipe/lvp_device.c \
+  src/gallium/frontends/lavapipe/lvp_pipeline_cache.c \
+  src/mesa/main/getstring.c \
+  src/virtio/vulkan/vn_physical_device.c
 ../../patches/apply.sh "$(pwd)"
 rm -f \
   out/target/product/virtio_arm64only/vendor/etc/init/hw/init.caiman.rc \
