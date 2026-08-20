@@ -39,3 +39,4 @@ apply_patch device/virt/virtio_arm64 0005-virtio-arm64-use-compatible-utm-displa
 apply_patch device/virt/virtio_arm64only 0007-virtio-arm64-consistent-product-identity.patch
 apply_patch device/virt/virtio-common 0010-virtio-common-install-caiman-hal-rc.patch
 apply_patch external/mesa 0003-mesa-use-build-environment-python.patch
+apply_patch external/mesa 0011-mesa-report-mali-g715-identity.patch

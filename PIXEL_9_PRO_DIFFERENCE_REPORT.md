@@ -28,7 +28,7 @@ be proven from source configuration alone.
 | CPU | Google Tensor G4, 8 physical CPU cores | 8 generic ARM64 vCPUs with compatibility profile | Core count aligned; topology and CPU identity differ |
 | Memory | 16 GB RAM | Up to 16 GiB, auto-capped to a safe share of host RAM | Capacity aspirational; capped so the guest never starves the macOS host |
 | Display | 1280 x 2856, 495 PPI, LTPO OLED, 1-120 Hz | 1280 x 2856 at 495 DPI logical override through VirtIO GPU | Geometry aligned; panel and refresh behavior differ |
-| GPU | Tensor-integrated Mali GPU | `virtio-gpu-pci`, software-compatible renderer | Different driver, extensions and performance |
+| GPU | Tensor-integrated Mali-G715 | `virtio-gpu-pci`, software-compatible renderer reporting `ARM` / `Mali-G715` | Public name aligned; driver, extensions and performance differ |
 | Cellular | Physical 4G/5G modem, nano-SIM and eSIM | None | Not emulated |
 | Wi-Fi | Wi-Fi 7 tri-band radio | VirtWifi over virtual Ethernet | API-compatible networking, no Wi-Fi radio |
 | Bluetooth | Bluetooth 5.3 dual-antenna radio | USB adapter passthrough when configured | Host hardware dependent |
@@ -153,16 +153,19 @@ begin with. Runtime state is verifiable with `tools/audit-fingerprint.sh`.
 | `/proc/tty/drivers` goldfish, `/proc/cpuinfo` x86 | absent | ARM64 `virt`, no goldfish | Not present |
 | MAC `02:00:00:00:00:00` | vendor MAC | Random locally-administered MAC per instance | Fixed |
 | Sensors (accel/gyro/compass) | present | Declared via patch 0008 + host bridge | Fixed |
-| GL/Vulkan renderer | vendor GPU string | `virtio-gpu-pci` + software renderer; renderer string still non-Pixel | Residual tell |
+| GL/Vulkan renderer | `ARM` / `Mali-G715` | Mesa reports `ARM` / `Mali-G715`; Venus and lavapipe also report Arm vendor ID `0x13b5` | Public strings aligned; Mesa driver IDs, Vulkan device type, feature limits and performance remain residual tells |
 | Telephony IMEI/IMSI/operator "Android"/`1555521xxxx` | carrier values | No modem emulated; no default emulator numbers either | Not emulated |
 | `ro.boot.verifiedbootstate` | `green` (Google-signed) | `green` string via resetprop; real AVB stays `orange` | Cosmetic only |
 | Play Integrity / key attestation / Widevine L1 | hardware-backed | Not achievable in a VM | Hard limit |
 
-Residual tells that source/property changes cannot remove are the GL/Vulkan
-renderer identity, `/proc/cpuinfo` CPU implementer, the real `orange`
-verified-boot/attestation state, and the `release-keys` fingerprint versus the
-private signing key. These require host GPU passthrough or physical security
-hardware and are out of scope.
+Patch `0011` aligns the public GL/Vulkan vendor and renderer strings, including
+the lavapipe and Venus paths. It does not change the underlying Mesa software
+renderer: driver IDs/names, Vulkan `deviceType`, exposed feature limits, shader
+behavior and performance remain distinguishable. Other residual tells that
+source/property changes cannot remove are `/proc/cpuinfo` CPU implementer, the
+real `orange` verified-boot/attestation state, and the `release-keys` fingerprint
+versus the private signing key. Eliminating those differences requires GPU
+passthrough or physical security hardware and remains out of scope.
 
 ## Platform identity override (vendor_init)
 

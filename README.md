@@ -87,8 +87,10 @@ discovers the VirtIO device trees. The patched image:
 - enables VirtWifi by default on the VirtIO Ethernet interface;
 - includes the Android external USB camera provider and UVC/V4L2 kernel support;
 - declares bridged GPS support and accepts host location injection;
-- allows up to eight USB devices in the ARM64 UTM template; and
-- configures the ARM64 UTM template with four CPUs and 4 GiB of memory.
+- allows up to eight USB devices in the ARM64 UTM template;
+- configures the ARM64 UTM template with four CPUs and 4 GiB of memory; and
+- reports the Pixel 9 Pro's public `ARM` / `Mali-G715` GPU identity from the
+  Mesa GL and Vulkan paths while retaining the real virtual renderer behavior.
 
 For Pixel 9 Pro application-layout and resource testing, apply the optional
 compatibility profile before importing the VM. The host should have enough

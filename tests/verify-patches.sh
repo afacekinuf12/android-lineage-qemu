@@ -34,6 +34,52 @@ clone_and_check_series \
   0007-virtio-arm64-consistent-product-identity.patch
 clone_and_check_series \
   android_external_mesa \
-  0003-mesa-use-build-environment-python.patch
+  0003-mesa-use-build-environment-python.patch \
+  0011-mesa-report-mali-g715-identity.patch
+
+mesa_checkout="$WORK/android_external_mesa"
+assert_function_returns() {
+  local file=$1
+  local function=$2
+  local value=$3
+
+  awk -v function_name="$function" -v value="$value" '
+    index($0, function_name) { in_function = 1 }
+    in_function && index($0, "return \"" value "\";") { found = 1 }
+    in_function && /^}/ { exit found ? 0 : 1 }
+    END { if (!in_function) exit 1 }
+  ' "$file"
+}
+
+assert_function_returns \
+  "$mesa_checkout/src/gallium/drivers/llvmpipe/lp_screen.c" \
+  llvmpipe_get_vendor ARM
+assert_function_returns \
+  "$mesa_checkout/src/gallium/drivers/llvmpipe/lp_screen.c" \
+  llvmpipe_get_name Mali-G715
+assert_function_returns \
+  "$mesa_checkout/src/gallium/drivers/softpipe/sp_screen.c" \
+  softpipe_get_vendor ARM
+assert_function_returns \
+  "$mesa_checkout/src/gallium/drivers/softpipe/sp_screen.c" \
+  softpipe_get_name Mali-G715
+assert_function_returns \
+  "$mesa_checkout/src/gallium/drivers/virgl/virgl_screen.c" \
+  virgl_get_vendor ARM
+assert_function_returns \
+  "$mesa_checkout/src/gallium/drivers/virgl/virgl_screen.c" \
+  virgl_get_name Mali-G715
+grep -q '\.vendorID = 0x13b5, /\* Arm \*/' \
+  "$mesa_checkout/src/gallium/frontends/lavapipe/lvp_device.c"
+grep -q 'strcpy(p->deviceName, "Mali-G715");' \
+  "$mesa_checkout/src/gallium/frontends/lavapipe/lvp_device.c"
+grep -q 'hdr\[2\] = 0x13b5; /\* Arm \*/' \
+  "$mesa_checkout/src/gallium/frontends/lavapipe/lvp_pipeline_cache.c"
+grep -q 'props->vendorID = 0x13b5; /\* Arm \*/' \
+  "$mesa_checkout/src/virtio/vulkan/vn_physical_device.c"
+grep -q 'snprintf(props->deviceName, sizeof(props->deviceName), "Mali-G715");' \
+  "$mesa_checkout/src/virtio/vulkan/vn_physical_device.c"
+grep -q 'layered_properties.api.vendorID = props->vendorID;' \
+  "$mesa_checkout/src/virtio/vulkan/vn_physical_device.c"
 
 echo "All LineageOS patches apply cleanly."
