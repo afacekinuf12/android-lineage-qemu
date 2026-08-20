@@ -1,24 +1,23 @@
 diff --git a/libraries/libinit/libinit_virt.cpp b/libraries/libinit/libinit_virt.cpp
-index 9feb0a9..e213ace 100644
+index 9feb0a9..66618ae 100644
 --- a/libraries/libinit/libinit_virt.cpp
 +++ b/libraries/libinit/libinit_virt.cpp
-@@ -32,6 +32,28 @@ static void set_misc_properties() {
+@@ -32,6 +32,31 @@ static void set_misc_properties() {
      }
  }
  
 +// Align the platform/board identity strings with a Google Pixel 9 Pro (the
-+// Tensor G4 "zumapro" platform). These are pure identity strings and are never
-+// used by init to resolve a HAL rc import path, so overriding them in
-+// vendor_init is safe.
++// Tensor G4 "zumapro" platform).
 +//
-+// Do NOT override ro.hardware / ro.boot.hardware here. vendor_load_properties()
-+// runs from PropertyInit() -> PropertyLoadBootDefaults(), which SecondStageMain
-+// calls BEFORE LoadBootScripts(). LoadBootScripts() then expands
-+// "import /vendor/etc/init/hw/init.${ro.hardware}.rc"; rewriting ro.hardware to
-+// "caiman" here makes init import a non-existent init.caiman.rc, the VirtIO HAL
-+// services never start, and the device bootloops. ro.hardware/ro.boot.hardware
-+// therefore keep their truthful "virtio" value; any string disguise must happen
-+// at runtime after boot (resetprop), never in vendor_init.
++// ro.hardware / ro.boot.hardware are set to "caiman" here as well. This is safe
++// ONLY because the build installs a matching /vendor/etc/init/hw/init.caiman.rc
++// (see patches/0010, a copy of init.virtio.rc with the same early-fs partition
++// symlinks and mount_all). init runs vendor_load_properties() (via PropertyInit
++// -> PropertyLoadBootDefaults) BEFORE LoadBootScripts(), and LoadBootScripts()
++// expands "import /vendor/etc/init/hw/init.${ro.hardware}.rc"; because
++// init.caiman.rc now exists and is functionally identical to init.virtio.rc,
++// the HAL services load and the fs stages run, so there is no bootloop. Do not
++// set ro.hardware=caiman without the companion init.caiman.rc from patch 0010.
 +static void set_pixel_platform_identity() {
 +    property_override("ro.board.platform", "zumapro");
 +    property_override("ro.product.board", "zumapro");
@@ -26,12 +25,16 @@ index 9feb0a9..e213ace 100644
 +    property_override("ro.hardware.chipname", "zumapro");
 +    property_override("ro.soc.manufacturer", "Google");
 +    property_override("ro.soc.model", "zumapro");
++    property_override("ro.hardware", "caiman");
++    property_override("ro.boot.hardware", "caiman");
++    property_override("ro.boot.hardware.sku", "caiman");
++    property_override("ro.boot.product.hardware.sku", "caiman");
 +}
 +
  void vendor_process_bootenv_virt() {
      vendor_process_bootenv_mainline_common();
  }
-@@ -40,4 +62,5 @@ void vendor_load_properties_virt() {
+@@ -40,4 +65,5 @@ void vendor_load_properties_virt() {
      vendor_load_properties_mainline_common();
      set_misc_properties();
      set_properties_from_dmi_id();
