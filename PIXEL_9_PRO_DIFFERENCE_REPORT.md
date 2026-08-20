@@ -153,15 +153,17 @@ begin with. Runtime state is verifiable with `tools/audit-fingerprint.sh`.
 | `/proc/tty/drivers` goldfish, `/proc/cpuinfo` x86 | absent | ARM64 `virt`, no goldfish | Not present |
 | MAC `02:00:00:00:00:00` | vendor MAC | Random locally-administered MAC per instance | Fixed |
 | Sensors (accel/gyro/compass) | present | Declared via patch 0008 + host bridge | Fixed |
-| GL/Vulkan renderer | `ARM` / `Mali-G715` | Mesa reports `ARM` / `Mali-G715`; Venus and lavapipe also report Arm vendor ID `0x13b5` | Public strings aligned; Mesa driver IDs, Vulkan device type, feature limits and performance remain residual tells |
+| GL/Vulkan renderer | `ARM` / `Mali-G715` | Public GL vendor/renderer and Vulkan device name report `ARM` / `Mali-G715`; internal Mesa vendor/driver IDs remain truthful | Public strings aligned; Mesa vendor/driver IDs, Vulkan device type, feature limits and performance remain residual tells |
 | Telephony IMEI/IMSI/operator "Android"/`1555521xxxx` | carrier values | No modem emulated; no default emulator numbers either | Not emulated |
 | `ro.boot.verifiedbootstate` | `green` (Google-signed) | `green` string via resetprop; real AVB stays `orange` | Cosmetic only |
 | Play Integrity / key attestation / Widevine L1 | hardware-backed | Not achievable in a VM | Hard limit |
 
-Patch `0011` aligns the public GL/Vulkan vendor and renderer strings, including
-the lavapipe and Venus paths. It does not change the underlying Mesa software
-renderer: driver IDs/names, Vulkan `deviceType`, exposed feature limits, shader
-behavior and performance remain distinguishable. Other residual tells that
+Patch `0011` aligns the public GL/Vulkan vendor and renderer strings at API
+return boundaries, including the lavapipe and Venus paths. It deliberately
+keeps Gallium screen identity, Vulkan vendor/driver IDs, UUIDs and pipeline
+cache headers truthful so the override cannot alter driver selection or cache
+semantics. The underlying Mesa software renderer, Vulkan `deviceType`, exposed
+feature limits, shader behavior and performance remain distinguishable. Other residual tells that
 source/property changes cannot remove are `/proc/cpuinfo` CPU implementer, the
 real `orange` verified-boot/attestation state, and the `release-keys` fingerprint
 versus the private signing key. Eliminating those differences requires GPU
