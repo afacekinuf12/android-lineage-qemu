@@ -136,8 +136,14 @@ git -C device/virt/virt-common checkout -- \
   virt-common.mk
 git -C device/virt/virtio_arm64 checkout -- vm_templates/utm/config.plist
 git -C device/virt/virtio_arm64only checkout -- lineage_virtio_arm64only.mk
+# Restore files touched by older patch series so cached runners converge on the
+# current source state even after the init.caiman.rc workaround was removed.
+git -C device/virt/virtio-common checkout -- device-common.mk
 git -C external/mesa checkout -- android/mesa3d_cross.mk
 ../../patches/apply.sh "$(pwd)"
+rm -f \
+  out/target/product/virtio_arm64only/vendor/etc/init/hw/init.caiman.rc \
+  out/target/product/virtio_x86_64/vendor/etc/init/hw/init.caiman.rc
 
 if [[ "$BUILD_TARGET" == "all" || "$BUILD_TARGET" == "x86_64" ]]; then
   breakfast virtio_x86_64 userdebug

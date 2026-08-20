@@ -64,6 +64,8 @@ test ! -f "$permissions/android.hardware.sensor.hinge_angle.xml"
 test ! -f "$permissions/android.hardware.sensor.relative_humidity.xml"
 test ! -f "$permissions/android.hardware.sensor.barometer.xml"
 test ! -f "$product_permissions/android.hardware.type.pc.xml"
+test -f "$PRODUCT_OUT/vendor/etc/init/hw/init.virtio.rc"
+test ! -f "$PRODUCT_OUT/vendor/etc/init/hw/init.caiman.rc"
 
 misc_info=$(find "$target_files" -path '*/META/misc_info.txt' -type f | head -1)
 grep -q '^default_system_dev_certificate=vendor/lineage-priv/keys/releasekey$' \
