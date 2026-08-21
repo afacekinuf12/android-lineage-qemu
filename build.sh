@@ -130,6 +130,7 @@ export AB_OTA_UPDATER=false ROOMSERVICE_BRANCHES="lineage-23.1 lineage-23.0"
 # Let roomservice discover the ARM64 device trees before patching.
 breakfast virtio_arm64only userdebug
 git -C device/virt/virt-common checkout -- \
+  configs/init/init.virt.rc \
   configs/kernel/virt-common.config \
   configs/misc/grubenv.txt \
   libraries/libinit/libinit_virt.cpp \

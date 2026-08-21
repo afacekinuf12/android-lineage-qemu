@@ -79,5 +79,13 @@ grep -q 'strcpy(properties.deviceName, "Mali-G715");' \
   "$WORK/android_external_swiftshader/src/Vulkan/VkPhysicalDevice.cpp"
 grep -q 'constexpr uint32_t VENDOR_ID = 0x1AE0;' \
   "$WORK/android_external_swiftshader/src/Vulkan/VkConfig.hpp"
+grep -q 'constexpr uint32_t DEVICE_ID = 0xC0DE;' \
+  "$WORK/android_external_swiftshader/src/Vulkan/VkConfig.hpp"
+grep -q 'VK_DRIVER_ID_GOOGLE_SWIFTSHADER_KHR' \
+  "$WORK/android_external_swiftshader/src/Vulkan/VkPhysicalDevice.cpp"
+grep -q 'strcpy(properties->driverName, "SwiftShader driver");' \
+  "$WORK/android_external_swiftshader/src/Vulkan/VkPhysicalDevice.cpp"
+grep -q 'header->vendorID = VENDOR_ID;' \
+  "$WORK/android_external_swiftshader/src/Vulkan/VkPipelineCache.cpp"
 
 echo "All LineageOS patches apply cleanly."
