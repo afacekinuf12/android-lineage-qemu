@@ -15,6 +15,7 @@ vendor_prop="$PRODUCT_OUT/vendor/build.prop"
 permissions="$PRODUCT_OUT/vendor/etc/permissions"
 product_permissions="$PRODUCT_OUT/product/etc/permissions"
 target_files="$PRODUCT_OUT/obj/PACKAGING/target_files_intermediates"
+virtgpu_detect="$PRODUCT_OUT/vendor/bin/virtgpu_detect"
 
 require_property() {
   local file=$1
@@ -66,6 +67,18 @@ test ! -f "$permissions/android.hardware.sensor.barometer.xml"
 test ! -f "$product_permissions/android.hardware.type.pc.xml"
 test -f "$PRODUCT_OUT/vendor/etc/init/hw/init.virtio.rc"
 test ! -f "$PRODUCT_OUT/vendor/etc/init/hw/init.caiman.rc"
+
+# UTM's non-3D VirtIO GPU must use the stable ANGLE/Pastel fallback. Guard the
+# incremental runner against a stale binary from the reverted Mesa-swrast
+# experiment, which would otherwise boot but silently select the wrong stack.
+if [[ ! -x "$virtgpu_detect" ]] ||
+  ! grep -aFq 'swiftshader' "$virtgpu_detect" ||
+  grep -aFq 'mesa_swrast' "$virtgpu_detect"; then
+  echo "virtgpu_detect does not select the expected SwiftShader fallback" >&2
+  strings "$virtgpu_detect" 2>/dev/null |
+    grep -xE 'mesa|mesa_swrast|swiftshader' >&2 || true
+  exit 1
+fi
 
 misc_info=$(find "$target_files" -path '*/META/misc_info.txt' -type f | head -1)
 grep -q '^default_system_dev_certificate=vendor/lineage-priv/keys/releasekey$' \

@@ -48,6 +48,7 @@ clone_and_check_series \
 clone_and_check_series \
   android_device_virt_virtio_arm64only \
   0007-virtio-arm64-consistent-product-identity.patch
+clone_and_check_series android_device_virt_virtio-common
 clone_and_check_series \
   android_external_mesa \
   0003-mesa-use-build-environment-python.patch \
@@ -87,5 +88,13 @@ grep -q 'strcpy(properties->driverName, "SwiftShader driver");' \
   "$WORK/android_external_swiftshader/src/Vulkan/VkPhysicalDevice.cpp"
 grep -q 'header->vendorID = VENDOR_ID;' \
   "$WORK/android_external_swiftshader/src/Vulkan/VkPipelineCache.cpp"
+grep -q 'value ? "mesa" : "swiftshader"' \
+  "$WORK/android_device_virt_virtio-common/services/virtgpu_detect/virtgpu_detect.c"
+if grep -q 'value ? "mesa" : "mesa_swrast"' \
+  "$WORK/android_device_virt_virtio-common/services/virtgpu_detect/virtgpu_detect.c"; then
+  echo "virtgpu_detect unexpectedly defaults to Mesa software rendering" >&2
+  exit 1
+fi
+grep -q 'services/virtgpu_detect/virtgpu_detect.c' "$ROOT/build.sh"
 
 echo "All LineageOS patches apply cleanly."

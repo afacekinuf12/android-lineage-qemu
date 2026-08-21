@@ -138,8 +138,10 @@ git -C device/virt/virt-common checkout -- \
 git -C device/virt/virtio_arm64 checkout -- vm_templates/utm/config.plist
 git -C device/virt/virtio_arm64only checkout -- lineage_virtio_arm64only.mk
 # Restore files touched by older patch series so cached runners converge on the
-# current source state even after the init.caiman.rc workaround was removed.
-git -C device/virt/virtio-common checkout -- device-common.mk
+# current source state even after patches are removed or reverted.
+git -C device/virt/virtio-common checkout -- \
+  device-common.mk \
+  services/virtgpu_detect/virtgpu_detect.c
 git -C external/mesa checkout -- \
   android/mesa3d_cross.mk \
   src/gallium/drivers/llvmpipe/lp_screen.c \
@@ -151,7 +153,14 @@ git -C external/mesa checkout -- \
   src/virtio/vulkan/vn_physical_device.c
 git -C external/swiftshader checkout -- src/Vulkan/VkPhysicalDevice.cpp
 ../../patches/apply.sh "$(pwd)"
+# Force the reverted graphics selector through Soong and the product staging
+# tree even when a self-hosted runner still has outputs from the Mesa-swrast
+# experiment. The paths are deliberately limited to this single module.
+rm -rf \
+  out/soong/.intermediates/device/virt/virtio-common/services/virtgpu_detect/virtgpu_detect
 rm -f \
+  out/target/product/virtio_arm64only/vendor/bin/virtgpu_detect \
+  out/target/product/virtio_x86_64/vendor/bin/virtgpu_detect \
   out/target/product/virtio_arm64only/vendor/etc/init/hw/init.caiman.rc \
   out/target/product/virtio_x86_64/vendor/etc/init/hw/init.caiman.rc
 
