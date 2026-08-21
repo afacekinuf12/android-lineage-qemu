@@ -89,9 +89,9 @@ discovers the VirtIO device trees. The patched image:
 - declares bridged GPS support and accepts host location injection;
 - allows up to eight USB devices in the ARM64 UTM template;
 - configures the ARM64 UTM template with four CPUs and 4 GiB of memory; and
-- reports the Pixel 9 Pro's public `ARM` / `Mali-G715` GPU identity from the
-  selected GL and Vulkan paths while retaining the real virtual renderer
-  behavior.
+- reports `Mali-G715` in the public Vulkan device name and in ANGLE's structured
+  GL renderer description while retaining the real ANGLE/SwiftShader backend
+  marker and GL vendor required for correct renderer feature detection.
 
 For Pixel 9 Pro application-layout and resource testing, apply the optional
 compatibility profile before importing the VM. The host should have enough

@@ -16,6 +16,7 @@ permissions="$PRODUCT_OUT/vendor/etc/permissions"
 product_permissions="$PRODUCT_OUT/product/etc/permissions"
 target_files="$PRODUCT_OUT/obj/PACKAGING/target_files_intermediates"
 virtgpu_detect="$PRODUCT_OUT/vendor/bin/virtgpu_detect"
+init_virt="$PRODUCT_OUT/vendor/etc/init/hw/init.virt.rc"
 
 require_property() {
   local file=$1
@@ -66,7 +67,12 @@ test ! -f "$permissions/android.hardware.sensor.relative_humidity.xml"
 test ! -f "$permissions/android.hardware.sensor.barometer.xml"
 test ! -f "$product_permissions/android.hardware.type.pc.xml"
 test -f "$PRODUCT_OUT/vendor/etc/init/hw/init.virtio.rc"
+test -f "$init_virt"
 test ! -f "$PRODUCT_OUT/vendor/etc/init/hw/init.caiman.rc"
+if grep -q 'debug.angle.gl_\(vendor\|renderer\)' "$init_virt"; then
+  echo "unsafe global ANGLE identity override remains in $init_virt" >&2
+  exit 1
+fi
 
 # UTM's non-3D VirtIO GPU must use the stable ANGLE/Pastel fallback. Guard the
 # incremental runner against a stale binary from the reverted Mesa-swrast

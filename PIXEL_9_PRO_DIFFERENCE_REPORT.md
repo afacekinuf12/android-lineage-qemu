@@ -28,7 +28,7 @@ be proven from source configuration alone.
 | CPU | Google Tensor G4, 8 physical CPU cores | 8 generic ARM64 vCPUs with compatibility profile | Core count aligned; topology and CPU identity differ |
 | Memory | 16 GB RAM | Up to 16 GiB, auto-capped to a safe share of host RAM | Capacity aspirational; capped so the guest never starves the macOS host |
 | Display | 1280 x 2856, 495 PPI, LTPO OLED, 1-120 Hz | 1280 x 2856 at 495 DPI logical override through VirtIO GPU | Geometry aligned; panel and refresh behavior differ |
-| GPU | Tensor-integrated Mali-G715 | `virtio-gpu-pci`; default ANGLE/Pastel and optional Mesa paths report `ARM` / `Mali-G715` | Public name aligned; driver, extensions and performance differ |
+| GPU | Tensor-integrated Mali-G715 | `virtio-gpu-pci`; default ANGLE/Pastel preserves its backend/vendor markers while reporting `Mali-G715` as the Vulkan device name | Public model name aligned; driver, extensions and performance differ |
 | Cellular | Physical 4G/5G modem, nano-SIM and eSIM | None | Not emulated |
 | Wi-Fi | Wi-Fi 7 tri-band radio | VirtWifi over virtual Ethernet | API-compatible networking, no Wi-Fi radio |
 | Bluetooth | Bluetooth 5.3 dual-antenna radio | USB adapter passthrough when configured | Host hardware dependent |
@@ -153,7 +153,7 @@ begin with. Runtime state is verifiable with `tools/audit-fingerprint.sh`.
 | `/proc/tty/drivers` goldfish, `/proc/cpuinfo` x86 | absent | ARM64 `virt`, no goldfish | Not present |
 | MAC `02:00:00:00:00:00` | vendor MAC | Random locally-administered MAC per instance | Fixed |
 | Sensors (accel/gyro/compass) | present | Declared via patch 0008 + host bridge | Fixed |
-| GL/Vulkan renderer | `ARM` / `Mali-G715` | Public GL vendor/renderer and Vulkan device name report `ARM` / `Mali-G715`; internal ANGLE/SwiftShader and Mesa driver IDs remain truthful | Public strings aligned; vendor/driver IDs, Vulkan device type, feature limits and performance remain residual tells |
+| GL/Vulkan renderer | `ARM` / `Mali-G715` | Vulkan device name reports `Mali-G715`; GL keeps the structured ANGLE/SwiftShader renderer and Google vendor so Skia does not apply incompatible Mali behavior | GPU model visible; GL vendor/backend, Vulkan IDs, device type, feature limits and performance remain residual tells |
 | Telephony IMEI/IMSI/operator "Android"/`1555521xxxx` | carrier values | No modem emulated; no default emulator numbers either | Not emulated |
 | `ro.boot.verifiedbootstate` | `green` (Google-signed) | `green` string via resetprop; real AVB stays `orange` | Cosmetic only |
 | Play Integrity / key attestation / Widevine L1 | hardware-backed | Not achievable in a VM | Hard limit |
@@ -165,10 +165,12 @@ cache headers truthful so the override cannot alter driver selection or cache
 semantics. The underlying Mesa software renderer, Vulkan `deviceType`, exposed
 feature limits, shader behavior and performance remain distinguishable.
 
-Patch `0012` supplies ANGLE's built-in public GL string override properties on
-the default SwiftShader path. Patch `0013` changes only SwiftShader's public
-Vulkan `deviceName`; its Google vendor ID, placeholder device ID, driver ID,
-UUID, capabilities and pipeline cache behavior remain unchanged.
+Patch `0013` changes only SwiftShader's public Vulkan `deviceName`; its Google
+vendor ID, placeholder device ID, driver ID, UUID, capabilities and pipeline
+cache behavior remain unchanged. ANGLE's GL vendor and renderer are not
+globally overridden: SurfaceFlinger and Skia consume those strings for backend
+and GPU capability detection, and presenting the software backend as native
+ARM/Mali caused corrupted composition.
 
 Other residual tells that source/property changes cannot remove are
 `/proc/cpuinfo` CPU implementer, the

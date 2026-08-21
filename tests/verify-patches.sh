@@ -39,8 +39,7 @@ clone_and_check_series \
   0001-virt-common-enable-compat-hardware.patch \
   0006-virt-common-declare-bridged-gps.patch \
   0008-virt-common-align-declared-hardware.patch \
-  0009-virt-common-pixel-platform-identity.patch \
-  0012-virt-common-report-angle-gpu-identity.patch
+  0009-virt-common-pixel-platform-identity.patch
 clone_and_check_series \
   android_device_virt_virtio_arm64 \
   0002-virtio-arm64-expand-utm-hardware.patch \
@@ -72,10 +71,11 @@ grep -q 'return "Mesa";' \
   "$mesa_checkout/src/gallium/drivers/llvmpipe/lp_screen.c"
 grep -q 'VK_VENDOR_ID_MESA' \
   "$mesa_checkout/src/gallium/frontends/lavapipe/lvp_device.c"
-grep -q 'setprop debug.angle.gl_vendor ARM' \
-  "$WORK/android_device_virt_virt-common/configs/init/init.virt.rc"
-grep -q 'setprop debug.angle.gl_renderer Mali-G715' \
-  "$WORK/android_device_virt_virt-common/configs/init/init.virt.rc"
+if grep -q 'debug.angle.gl_\(vendor\|renderer\)' \
+  "$WORK/android_device_virt_virt-common/configs/init/init.virt.rc"; then
+  echo "ANGLE public string overrides would hide the real backend from Skia" >&2
+  exit 1
+fi
 grep -q 'strcpy(properties.deviceName, "Mali-G715");' \
   "$WORK/android_external_swiftshader/src/Vulkan/VkPhysicalDevice.cpp"
 grep -q 'constexpr uint32_t VENDOR_ID = 0x1AE0;' \

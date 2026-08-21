@@ -161,6 +161,8 @@ rm -rf \
 rm -f \
   out/target/product/virtio_arm64only/vendor/bin/virtgpu_detect \
   out/target/product/virtio_x86_64/vendor/bin/virtgpu_detect \
+  out/target/product/virtio_arm64only/vendor/etc/init/hw/init.virt.rc \
+  out/target/product/virtio_x86_64/vendor/etc/init/hw/init.virt.rc \
   out/target/product/virtio_arm64only/vendor/etc/init/hw/init.caiman.rc \
   out/target/product/virtio_x86_64/vendor/etc/init/hw/init.caiman.rc
 
