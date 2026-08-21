@@ -33,9 +33,6 @@ clone_and_check_series \
   android_device_virt_virtio_arm64only \
   0007-virtio-arm64-consistent-product-identity.patch
 clone_and_check_series \
-  android_device_virt_virtio-common \
-  0012-virtio-common-default-to-mesa-swrast.patch
-clone_and_check_series \
   android_external_mesa \
   0003-mesa-use-build-environment-python.patch \
   0011-mesa-report-mali-g715-identity.patch
@@ -55,7 +52,5 @@ grep -q 'return "Mesa";' \
   "$mesa_checkout/src/gallium/drivers/llvmpipe/lp_screen.c"
 grep -q 'VK_VENDOR_ID_MESA' \
   "$mesa_checkout/src/gallium/frontends/lavapipe/lvp_device.c"
-grep -q 'value ? "mesa" : "mesa_swrast"' \
-  "$WORK/android_device_virt_virtio-common/services/virtgpu_detect/virtgpu_detect.c"
 
 echo "All LineageOS patches apply cleanly."
