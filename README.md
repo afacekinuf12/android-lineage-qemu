@@ -90,7 +90,9 @@ discovers the VirtIO device trees. The patched image:
 - allows up to eight USB devices in the ARM64 UTM template;
 - configures the ARM64 UTM template with four CPUs and 4 GiB of memory; and
 - reports the Pixel 9 Pro's public `ARM` / `Mali-G715` GPU identity from the
-  Mesa GL and Vulkan paths while retaining the real virtual renderer behavior.
+  Mesa GL and Vulkan paths while retaining the real virtual renderer behavior; and
+- defaults UTM's non-3D VirtIO GPU to Mesa llvmpipe/lavapipe, with the
+  explicit SwiftShader advanced boot option retained as a fallback.
 
 For Pixel 9 Pro application-layout and resource testing, apply the optional
 compatibility profile before importing the VM. The host should have enough

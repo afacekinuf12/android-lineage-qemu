@@ -1,0 +1,16 @@
+diff --git a/services/virtgpu_detect/virtgpu_detect.c b/services/virtgpu_detect/virtgpu_detect.c
+index 116d857..0abff4e 100644
+--- a/services/virtgpu_detect/virtgpu_detect.c
++++ b/services/virtgpu_detect/virtgpu_detect.c
+@@ -26,7 +26,10 @@ int main() {
+     get_param.param = VIRTGPU_PARAM_3D_FEATURES;
+     ret = drmIoctl(fd, DRM_IOCTL_VIRTGPU_GETPARAM, &get_param);
+     if (!ret) {
+-        property_set("ro.vendor.graphics", value ? "mesa" : "swiftshader");
++        // UTM's compatible virtio-gpu-pci device has no host 3D feature. This
++        // build includes llvmpipe/lavapipe, so keep the Mesa API path active
++        // with software rendering instead of switching to ANGLE/SwiftShader.
++        property_set("ro.vendor.graphics", value ? "mesa" : "mesa_swrast");
+     } else {
+         ALOGE("drmIoctl VIRTGPU_PARAM_3D_FEATURES failed");
+     }
