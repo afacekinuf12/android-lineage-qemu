@@ -8,7 +8,7 @@ hardware claims aligned with capabilities that can actually be supplied.
 | Capability | Implementation | Fidelity |
 |------------|----------------|----------|
 | CPU and memory | Apple Silicon HVF; 4 vCPU/4 GiB default or 8 vCPU compatibility profile with guest memory capped to a safe share of host RAM (16 GiB aspirational ceiling) | High for generic ARM64 |
-| Display | VirtIO GPU; optional 1280 x 2856 at 495 DPI logical profile; Mesa reports `ARM` / `Mali-G715` | Functional; public GPU name aligned, but no LTPO panel or phone GPU implementation |
+| Display | VirtIO GPU; optional 1280 x 2856 at 495 DPI logical profile; both the default ANGLE/Pastel path and optional Mesa path report `ARM` / `Mali-G715` | Functional; public GPU name aligned, but no LTPO panel or phone GPU implementation |
 | Wi-Fi APIs | VirtWifi backed by VirtIO Ethernet | Network-compatible, no 802.11 radio |
 | Motion sensors | Cuttlefish Sensors HAL plus host injection | High when bridge is active |
 | Location | GPS test provider plus host injection | App-level location only |

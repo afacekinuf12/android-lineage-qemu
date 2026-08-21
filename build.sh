@@ -148,6 +148,7 @@ git -C external/mesa checkout -- \
   src/gallium/frontends/lavapipe/lvp_pipeline_cache.c \
   src/mesa/main/getstring.c \
   src/virtio/vulkan/vn_physical_device.c
+git -C external/swiftshader checkout -- src/Vulkan/VkPhysicalDevice.cpp
 ../../patches/apply.sh "$(pwd)"
 rm -f \
   out/target/product/virtio_arm64only/vendor/etc/init/hw/init.caiman.rc \

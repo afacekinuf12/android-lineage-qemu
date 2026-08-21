@@ -19,12 +19,28 @@ clone_and_check_series() {
   done
 }
 
+clone_and_check_aosp_series() {
+  local repository=$1
+  local revision=$2
+  shift 2
+  local checkout="$WORK/$repository"
+
+  git clone --quiet --depth 1 --branch "$revision" \
+    "https://android.googlesource.com/platform/external/${repository#android_external_}" \
+    "$checkout"
+  for patch in "$@"; do
+    git -C "$checkout" apply --check "$ROOT/patches/$patch"
+    git -C "$checkout" apply "$ROOT/patches/$patch"
+  done
+}
+
 clone_and_check_series \
   android_device_virt_virt-common \
   0001-virt-common-enable-compat-hardware.patch \
   0006-virt-common-declare-bridged-gps.patch \
   0008-virt-common-align-declared-hardware.patch \
-  0009-virt-common-pixel-platform-identity.patch
+  0009-virt-common-pixel-platform-identity.patch \
+  0012-virt-common-report-angle-gpu-identity.patch
 clone_and_check_series \
   android_device_virt_virtio_arm64 \
   0002-virtio-arm64-expand-utm-hardware.patch \
@@ -36,6 +52,9 @@ clone_and_check_series \
   android_external_mesa \
   0003-mesa-use-build-environment-python.patch \
   0011-mesa-report-mali-g715-identity.patch
+clone_and_check_aosp_series \
+  android_external_swiftshader android-16.0.0_r4 \
+  0013-swiftshader-report-mali-g715-device-name.patch
 
 mesa_checkout="$WORK/android_external_mesa"
 grep -q 'return (const GLubyte \*) "ARM";' \
@@ -52,5 +71,13 @@ grep -q 'return "Mesa";' \
   "$mesa_checkout/src/gallium/drivers/llvmpipe/lp_screen.c"
 grep -q 'VK_VENDOR_ID_MESA' \
   "$mesa_checkout/src/gallium/frontends/lavapipe/lvp_device.c"
+grep -q 'setprop debug.angle.gl_vendor ARM' \
+  "$WORK/android_device_virt_virt-common/configs/init/init.virt.rc"
+grep -q 'setprop debug.angle.gl_renderer Mali-G715' \
+  "$WORK/android_device_virt_virt-common/configs/init/init.virt.rc"
+grep -q 'strcpy(properties.deviceName, "Mali-G715");' \
+  "$WORK/android_external_swiftshader/src/Vulkan/VkPhysicalDevice.cpp"
+grep -q 'constexpr uint32_t VENDOR_ID = 0x1AE0;' \
+  "$WORK/android_external_swiftshader/src/Vulkan/VkConfig.hpp"
 
 echo "All LineageOS patches apply cleanly."

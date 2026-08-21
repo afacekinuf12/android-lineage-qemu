@@ -1,0 +1,16 @@
+diff --git a/src/Vulkan/VkPhysicalDevice.cpp b/src/Vulkan/VkPhysicalDevice.cpp
+index a928150..7f3a955 100644
+--- a/src/Vulkan/VkPhysicalDevice.cpp
++++ b/src/Vulkan/VkPhysicalDevice.cpp
+@@ -846,8 +846,8 @@ const VkPhysicalDeviceProperties &PhysicalDevice::getProperties() const
+ 		};
+ 
+-		// Append Reactor JIT backend name and version
+-		snprintf(properties.deviceName, VK_MAX_PHYSICAL_DEVICE_NAME_SIZE,
+-		         "%s (%s)", SWIFTSHADER_DEVICE_NAME, rr::Caps::backendName().c_str());
++		// Public identity only. Keep the real SwiftShader vendor/device/driver IDs,
++		// UUID, feature set and pipeline cache behavior unchanged.
++		strcpy(properties.deviceName, "Mali-G715");
+ 
+ 		return properties;
+ 	};
