@@ -58,6 +58,9 @@ clone_and_check_aosp_series \
 clone_and_check_series \
   android_build_soong \
   0014-soong-stamp-build-date-in-utc.patch
+clone_and_check_series \
+  android_build \
+  0015-build-make-stamp-vendor-date-in-utc.patch
 
 mesa_checkout="$WORK/android_external_mesa"
 grep -q 'return (const GLubyte \*) "ARM";' \
@@ -101,5 +104,7 @@ fi
 grep -q 'services/virtgpu_detect/virtgpu_detect.c' "$ROOT/build.sh"
 grep -q '"date", "-u", "-d", f"@{raw_date}"' \
   "$WORK/android_build_soong/scripts/gen_build_prop.py"
+grep -q 'DATE_FROM_FILE := date -u -d @' \
+  "$WORK/android_build/core/main.mk"
 
 echo "All LineageOS patches apply cleanly."

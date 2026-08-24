@@ -157,6 +157,7 @@ git -C external/mesa checkout -- \
   src/virtio/vulkan/vn_physical_device.c
 git -C external/swiftshader checkout -- src/Vulkan/VkPhysicalDevice.cpp
 git -C build/soong checkout -- scripts/gen_build_prop.py
+git -C build/make checkout -- core/main.mk
 ../../patches/apply.sh "$(pwd)"
 # Force the reverted graphics selector through Soong and the product staging
 # tree even when a self-hosted runner still has outputs from the Mesa-swrast

@@ -1,0 +1,13 @@
+diff --git a/core/main.mk b/core/main.mk
+index 617b036..ca22a72 100644
+--- a/core/main.mk
++++ b/core/main.mk
+@@ -48,7 +48,7 @@ $(KATI_obsolete_var FILE_NAME_TAG,https://android.googlesource.com/platform/buil
+ .KATI_RESTAT: $(BUILD_NUMBER_FILE)
+ .KATI_RESTAT: $(BUILD_HOSTNAME_FILE)
+ 
+-DATE_FROM_FILE := date -d @$(BUILD_DATETIME_FROM_FILE)
++DATE_FROM_FILE := date -u -d @$(BUILD_DATETIME_FROM_FILE)
+ .KATI_READONLY := DATE_FROM_FILE
+ 
+ 
