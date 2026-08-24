@@ -40,3 +40,4 @@ apply_patch device/virt/virtio_arm64only 0007-virtio-arm64-consistent-product-id
 apply_patch external/mesa 0003-mesa-use-build-environment-python.patch
 apply_patch external/mesa 0011-mesa-report-mali-g715-identity.patch
 apply_patch external/swiftshader 0013-swiftshader-report-mali-g715-device-name.patch
+apply_patch build/soong 0014-soong-stamp-build-date-in-utc.patch

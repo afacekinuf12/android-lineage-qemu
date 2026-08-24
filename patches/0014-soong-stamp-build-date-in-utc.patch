@@ -1,0 +1,13 @@
+diff --git a/scripts/gen_build_prop.py b/scripts/gen_build_prop.py
+index 1111111..2222222 100755
+--- a/scripts/gen_build_prop.py
++++ b/scripts/gen_build_prop.py
+@@ -105,7 +105,7 @@ def parse_args():
+   config["BuildVersionTags"] = build_version_tags
+ 
+   raw_date = args.date_file.read().strip()
+-  config["Date"] = subprocess.check_output(["date", "-d", f"@{raw_date}"], text=True).strip()
++  config["Date"] = subprocess.check_output(["date", "-u", "-d", f"@{raw_date}"], text=True).strip()
+   config["DateUtc"] = subprocess.check_output(["date", "-d", f"@{raw_date}", "+%s"], text=True).strip()
+ 
+   # build_desc is human readable strings that describe this build. This has the same info as the

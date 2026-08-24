@@ -55,6 +55,9 @@ clone_and_check_series \
 clone_and_check_aosp_series \
   android_external_swiftshader android-16.0.0_r4 \
   0013-swiftshader-report-mali-g715-device-name.patch
+clone_and_check_series \
+  android_build_soong \
+  0014-soong-stamp-build-date-in-utc.patch
 
 mesa_checkout="$WORK/android_external_mesa"
 grep -q 'return (const GLubyte \*) "ARM";' \
@@ -96,5 +99,7 @@ if grep -q 'value ? "mesa" : "mesa_swrast"' \
   exit 1
 fi
 grep -q 'services/virtgpu_detect/virtgpu_detect.c' "$ROOT/build.sh"
+grep -q '"date", "-u", "-d", f"@{raw_date}"' \
+  "$WORK/android_build_soong/scripts/gen_build_prop.py"
 
 echo "All LineageOS patches apply cleanly."

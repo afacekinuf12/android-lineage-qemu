@@ -7,8 +7,9 @@ BUILD_TARGET=${BUILD_TARGET:-all}
 BUILD_JOBS=${BUILD_JOBS:-25}
 export BUILD_USERNAME=${BUILD_USERNAME:-android}
 export BUILD_HOSTNAME=${BUILD_HOSTNAME:-buildhost}
-# Stamp ro.*.build.date in UTC so the build-host locale (e.g. CST) does not leak
-# into the public build properties. BUILD_NUMBER already uses -u.
+# Keep the whole build in UTC. ro.*.build.date is stamped by Soong's
+# gen_build_prop.py (patch 0014 forces `date -u`); TZ=UTC covers any other
+# date-sensitive build step so the build-host locale (e.g. CST) never leaks.
 export TZ=${TZ:-UTC}
 export BUILD_NUMBER=${BUILD_NUMBER:-$(date -u '+%Y%m%d')}
 export JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:--XX:+DisableAttachMechanism}
@@ -155,6 +156,7 @@ git -C external/mesa checkout -- \
   src/mesa/main/getstring.c \
   src/virtio/vulkan/vn_physical_device.c
 git -C external/swiftshader checkout -- src/Vulkan/VkPhysicalDevice.cpp
+git -C build/soong checkout -- scripts/gen_build_prop.py
 ../../patches/apply.sh "$(pwd)"
 # Force the reverted graphics selector through Soong and the product staging
 # tree even when a self-hosted runner still has outputs from the Mesa-swrast
