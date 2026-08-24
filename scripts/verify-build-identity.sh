@@ -46,12 +46,48 @@ require_property "$vendor_prop" '^ro.product.vendor.name=caiman$' \
 require_property "$vendor_prop" '^ro.soc.manufacturer=Google$' 'ro.soc.'
 require_property "$vendor_prop" '^ro.soc.model=zumapro$' 'ro.soc.'
 
-if grep -Eq 'liuming|n37-007-050|test-keys|eng\.' "$system_prop" "$vendor_prop"; then
+mapfile -t build_props < <(find "$PRODUCT_OUT" -name build.prop -type f)
+
+# Reject build-host PII in any staged build.prop: developer usernames/hosts,
+# the internal build host, absolute source paths, private network endpoints,
+# and internal domains that identify where the image was produced.
+if grep -Eqi \
+  'liuming|n37-007-050|10\.37\.7\.50|\.byted\.org|bytedance|/data00|/home/[a-z]|/Users/[a-z]' \
+  "${build_props[@]}"; then
+  echo "build identity still exposes build-host metadata (user/host/path/network)" >&2
+  grep -Eni 'liuming|n37-007-050|10\.37\.7\.50|\.byted\.org|bytedance|/data00|/home/[a-z]|/Users/[a-z]' \
+    "${build_props[@]}" >&2 || true
+  exit 1
+fi
+
+# Reject engineering builds and residual test-keys signing metadata.
+if grep -Eq 'test-keys|eng\.' "$system_prop" "$vendor_prop"; then
   echo "build identity still exposes development metadata" >&2
   exit 1
 fi
 
-mapfile -t build_props < <(find "$PRODUCT_OUT" -name build.prop -type f)
+# ro.build.host / ro.build.user must be the neutral defaults, never a real
+# developer account or workstation hostname.
+if ! grep -q '^ro.build.host=buildhost$' "$system_prop"; then
+  echo "ro.build.host is not the neutral 'buildhost' default" >&2
+  grep '^ro.build.host=' "${build_props[@]}" >&2 || true
+  exit 1
+fi
+if ! grep -q '^ro.build.user=android$' "$system_prop"; then
+  echo "ro.build.user is not the neutral 'android' default" >&2
+  grep '^ro.build.user=' "${build_props[@]}" >&2 || true
+  exit 1
+fi
+
+# ro.*.build.date is stamped from the build host's clock; a non-UTC timezone
+# abbreviation (e.g. CST) leaks the builder's locale. Require UTC.
+if grep -Eh '^ro\..*build\.date=' "${build_props[@]}" |
+  grep -Evq ' UTC | GMT '; then
+  echo "build.date exposes a non-UTC build-host timezone" >&2
+  grep -Eh '^ro\..*build\.date=' "${build_props[@]}" >&2 || true
+  exit 1
+fi
+
 if grep -Ehi \
   '^(ro\.product\..*\.(brand|manufacturer|model)|ro\..*build\.fingerprint)=' \
   "${build_props[@]}" |

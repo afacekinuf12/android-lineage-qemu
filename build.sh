@@ -7,6 +7,9 @@ BUILD_TARGET=${BUILD_TARGET:-all}
 BUILD_JOBS=${BUILD_JOBS:-25}
 export BUILD_USERNAME=${BUILD_USERNAME:-android}
 export BUILD_HOSTNAME=${BUILD_HOSTNAME:-buildhost}
+# Stamp ro.*.build.date in UTC so the build-host locale (e.g. CST) does not leak
+# into the public build properties. BUILD_NUMBER already uses -u.
+export TZ=${TZ:-UTC}
 export BUILD_NUMBER=${BUILD_NUMBER:-$(date -u '+%Y%m%d')}
 export JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:--XX:+DisableAttachMechanism}
 sudo apt update
