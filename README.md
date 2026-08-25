@@ -136,7 +136,12 @@ These extensions do not provide a trusted cellular modem, hardware-backed
 KeyMint/StrongBox, Widevine L1, or Google hardware attestation.
 
 See [`HARDWARE_COMPATIBILITY.md`](HARDWARE_COMPATIBILITY.md) for the detailed
-fidelity matrix and the remaining differences from a physical phone.
+fidelity matrix and the remaining differences from a physical phone,
+[`PIXEL_9_PRO_DIFFERENCE_REPORT.md`](PIXEL_9_PRO_DIFFERENCE_REPORT.md) for the
+feature/HAL comparison, and
+[`FINGERPRINT_DIFFERENCE_REFERENCE.md`](FINGERPRINT_DIFFERENCE_REFERENCE.md) for
+the per-family fingerprint delta (which values are aligned, cosmetic, or a
+residual virtualization tell).
 
 ## Building
 
