@@ -66,10 +66,12 @@ setprop_ro ro.build.tags "$TAGS"
 setprop_ro ro.build.type "$TYPE"
 setprop_ro ro.vendor.build.security_patch "$SECURITY_PATCH"
 
-# Boot / hardware identifiers. These come from the kernel cmdline and DMI, not
-# build.prop, so they can only be corrected at runtime. We do NOT change them on
-# the kernel cmdline itself, because init resolves HAL module paths from
-# ro.hardware during early boot and a non-existent "caiman" HAL set would loop.
+# Boot / hardware identifiers. As of build patch 0016, ro.hardware and
+# ro.boot.hardware are already "caiman" from the bootconfig source, and matching
+# init.caiman.rc / fstab.caiman are installed so HAL rc import still resolves.
+# These resetprop lines are therefore redundant on a 0016 build; they are kept
+# as a harmless fallback for older images that predate the patch. init.caiman.rc
+# is provided by the build, so setting ro.hardware here can no longer bootloop.
 setprop_ro ro.hardware caiman
 setprop_ro ro.boot.hardware caiman
 setprop_ro ro.boot.hardware.sku caiman

@@ -94,18 +94,28 @@ runtime — see `runtime-getprop-utc-pii.txt`.
 | `ro.soc.model` | `zumapro` | `zumapro` | vendor_init (0009) | String-aligned |
 | `ro.board.platform` | `zumapro` | `zumapro` | vendor_init (0009) | String-aligned |
 | `ro.product.board` | `zumapro` | `zumapro` | vendor_init (0009) | String-aligned |
-| `ro.hardware` | device value | `virtio` | kernel/cmdline | **Residual tell (intentional)** |
-| `ro.boot.hardware` | device value | `virtio` | kernel/cmdline | **Residual tell (intentional)** |
+| `ro.hardware` | device value | `caiman` | bootconfig (0016) | String-aligned |
+| `ro.boot.hardware` | device value | `caiman` | bootconfig (0016) | String-aligned |
 
-**Why `ro.hardware` stays `virtio`.** `init` expands
-`import /vendor/etc/init/hw/init.${ro.hardware}.rc` during early boot, *before*
-any resetprop/Magisk phase. Overriding `ro.hardware`→`caiman` in `vendor_init`
-made init look for a non-existent `caiman` HAL set and **bootlooped** the
-device; a byte-identical `init.caiman.rc` alias did not resolve it. The truthful
-`virtio` value is therefore kept at boot; the `caiman` string, if needed, is
-only applied post-boot by resetprop (which runs long after HAL selection). The
-SoC/board strings above are safe to override because they are consumed only as
-identity, never to resolve an rc import path.
+**How `ro.hardware` became `caiman` (patch 0016).** `init` derives `ro.hardware`
+from `androidboot.hardware` in `ExportKernelBootProps()`, which runs *before*
+`LoadBootScripts()` expands `import /vendor/etc/init/hw/init.${ro.hardware}.rc`.
+Patch 0016 changes the **bootconfig** value `androidboot.hardware` from `virtio`
+to `caiman`, so `ro.hardware` is `caiman` from the first instant of second-stage
+init — no re-set of a read-only property, no `/dev/__properties__` write (which
+`system/sepolicy` `neverallow`s for every domain but `init`), no resetprop.
+
+The earlier note that "a byte-identical `init.caiman.rc` alias did not resolve
+it" applied to overriding `ro.hardware` **in `vendor_init` at runtime**, where
+the `.rc` import had already been decided from the old value. 0016 avoids that
+ordering trap entirely by fixing the value at its boot-config source, and
+installs `init.caiman.rc`, `init.recovery.caiman.rc` and `fstab.caiman` (all
+byte-identical to their `virtio` originals, which are retained) so every
+`${ro.hardware}` selector still resolves. The GSI boot path is unaffected: it
+selects its fstab via `androidboot.fstab_suffix=virtio.gsi.*`, a different key
+that `fs_mgr` checks before `hardware`. The SoC/board strings above remain
+vendor_init overrides because they are consumed only as identity, never to
+resolve an rc import path.
 
 ---
 
@@ -250,7 +260,7 @@ probes over marketing names.
 
 | Layer visible to… | Aligned / neutralized | Residual tells |
 |---|---|---|
-| Ordinary app (properties, PackageManager, GL/Vulkan name) | product identity, build strings (mostly), Vulkan device name, display geometry, PII/UTC | fingerprint↔build.id inconsistency, Vulkan IDs/driver/type, `ro.hardware=virtio`, missing HAL features |
+| Ordinary app (properties, PackageManager, GL/Vulkan name) | product identity, build strings (mostly), Vulkan device name, display geometry, PII/UTC, `ro.hardware=caiman` (0016) | fingerprint↔build.id inconsistency, Vulkan IDs/driver/type, missing HAL features |
 | Shell / privileged app | + resetprop-adjusted boot strings | `ro.lineage.*`, `virt_wifi`, `hvc*`, `vda/vdb`, Cuttlefish HALs |
 | Root / kernel | — | `/sys/bus/virtio`, PCI `1AF4:*`, EDK2/EFI, CPU implementer `0x61`, `orange` AVB |
 
