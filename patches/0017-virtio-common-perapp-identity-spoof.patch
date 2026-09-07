@@ -83,27 +83,20 @@ index 09e96bd..9ae7700 100644
 +/dev/spoofprop(/.*)?					u:object_r:spoofprop_file:s0
 diff --git a/sepolicy/vendor/spoofprop_gen.te b/sepolicy/vendor/spoofprop_gen.te
 new file mode 100644
-index 0000000..bb43114
+index 0000000..b78bf29
 --- /dev/null
 +++ b/sepolicy/vendor/spoofprop_gen.te
-@@ -0,0 +1,28 @@
-+# spoofprop_gen (Stage 1): snapshots the real property area and renders spoofed
-+# build.prop copies to /dev/spoofprop. Performs NO mounts and NO property-area
-+# writes, so it needs no privileged permissions. Enforcing.
+@@ -0,0 +1,21 @@
++# spoofprop_gen (Stage 1): renders spoofed build.prop copies and a flat
++# props.list under /dev/spoofprop from /system/etc/spoof_props.txt. Performs NO
++# mounts, NO property-area access, NO property-area writes. Enforcing.
 +type spoofprop_gen, domain;
 +type spoofprop_gen_exec, exec_type, vendor_file_type, file_type;
 +type spoofprop_file, file_type;
 +
 +init_daemon_domain(spoofprop_gen)
 +
-+# Read the live property area (snapshot via __system_property_foreach).
-+allow spoofprop_gen properties_device:dir r_dir_perms;
-+allow spoofprop_gen properties_device:file r_file_perms;
-+allow spoofprop_gen properties_serial:file r_file_perms;
-+allow spoofprop_gen property_info:file r_file_perms;
-+get_prop(spoofprop_gen, property_type)
-+
-+# Read the policy file and source build.prop files (system_file-labeled).
++# Read the policy file and the source build.prop files (system_file-labeled).
 +allow spoofprop_gen system_file:dir r_dir_perms;
 +allow spoofprop_gen system_file:file r_file_perms;
 +
@@ -132,34 +125,32 @@ index 0000000..9075b8f
 +}
 diff --git a/services/spoofprop_gen/spoofprop_gen.cpp b/services/spoofprop_gen/spoofprop_gen.cpp
 new file mode 100644
-index 0000000..ad164f2
+index 0000000..a3bfdd3
 --- /dev/null
 +++ b/services/spoofprop_gen/spoofprop_gen.cpp
-@@ -0,0 +1,139 @@
+@@ -0,0 +1,111 @@
 +/*
 + * SPDX-License-Identifier: Apache-2.0
 + *
 + * spoofprop_gen (Stage 1) - emit the spoofed identity DATA that Stage 2 will
-+ * expose only to target-app mount namespaces. This stage performs NO mounts and
-+ * NO property-area writes, so it needs no privileged SELinux permissions and
-+ * cannot affect any running process:
++ * expose only to target-app mount namespaces. This stage performs NO mounts,
++ * NO property-area reads, and NO property-area writes, so it needs no
++ * privileged SELinux permissions and cannot affect any running process:
 + *
-+ *   1. Snapshot every (name,value) from the live property area via
-+ *      __system_property_foreach, applying the policy overrides from
-+ *      /system/etc/spoof_props.txt, and write the result as a flat
-+ *      "name<TAB>value" list to /dev/spoofprop/props.list.
++ *   1. Read the override list from /system/etc/spoof_props.txt and write it as
++ *      a flat "name<TAB>value" table to /dev/spoofprop/props.list. Stage 2
++ *      applies exactly these keys (all in the readable build_prop /
++ *      build_vendor_prop / bootloader_prop classes) into a target app's view.
 + *   2. Render spoofed copies of the build.prop files (same overrides applied
-+ *      line-by-line) under /dev/spoofprop/.
++ *      line-by-line) under /dev/spoofprop/ for the file-open (svc/native) path.
 + *
-+ * Stage 2 (zygote, which is already permitted to mount) will, inside a target
-+ * app's private namespace, mount a tmpfs, rebuild a property area from
-+ * props.list, bind the spoofed build.prop files over the real ones, and call
-+ * __system_properties_zygote_reload(). System processes never see any of this.
++ * The generator never walks the live property area (which would require reading
++ * restricted property types that SELinux neverallows). It only rewrites the
++ * handful of build.prop-class keys we care about.
 + *
 + * Fabricates observable identity strings only; does not touch AVB/attestation.
 + */
 +
-+#include <dirent.h>
 +#include <fcntl.h>
 +#include <sys/stat.h>
 +#include <unistd.h>
@@ -169,21 +160,20 @@ index 0000000..ad164f2
 +#include <cstring>
 +#include <map>
 +#include <string>
-+#include <utility>
 +#include <vector>
-+
-+#include <sys/system_properties.h>
 +
 +#define LOG(...) do { fprintf(stderr, "spoofprop_gen: " __VA_ARGS__); fprintf(stderr, "\n"); } while (0)
 +
 +static const char* kPropsFile = "/system/etc/spoof_props.txt";
 +static const char* kOutDir    = "/dev/spoofprop";
 +
-+// ---- policy overrides ------------------------------------------------------
-+static std::map<std::string, std::string> load_overrides() {
-+  std::map<std::string, std::string> m;
++// Ordered list preserves file order; map is only for build.prop line rewriting.
++struct Override { std::string key, val; };
++
++static std::vector<Override> load_overrides() {
++  std::vector<Override> v;
 +  FILE* f = fopen(kPropsFile, "re");
-+  if (!f) { LOG("no %s: %s", kPropsFile, strerror(errno)); return m; }
++  if (!f) { LOG("no %s: %s", kPropsFile, strerror(errno)); return v; }
 +  char* line = nullptr; size_t cap = 0; ssize_t n;
 +  while ((n = getline(&line, &cap, f)) != -1) {
 +    if (n && line[n-1] == '\n') line[--n] = 0;
@@ -191,24 +181,15 @@ index 0000000..ad164f2
 +    char* eq = strchr(line, '=');
 +    if (!eq) continue;
 +    *eq = 0;
-+    m.emplace(line, eq + 1);
++    v.push_back({line, eq + 1});
 +  }
 +  free(line); fclose(f);
-+  return m;
++  return v;
 +}
 +
-+// ---- snapshot of the live property area ------------------------------------
-+struct Ctx {
-+  std::vector<std::pair<std::string, std::string>> kv;
-+};
-+static void read_cb(void* cookie, const char* name, const char* value, uint32_t) {
-+  static_cast<Ctx*>(cookie)->kv.emplace_back(name, value);
-+}
-+static void foreach_cb(const prop_info* pi, void* cookie) {
-+  __system_property_read_callback(pi, read_cb, cookie);
-+}
-+
-+static void render_build_props(const std::map<std::string, std::string>& ov) {
++static void render_build_props(const std::vector<Override>& ov) {
++  std::map<std::string, std::string> m;
++  for (const auto& o : ov) m[o.key] = o.val;
 +  const char* srcs[] = {"/system/build.prop", "/vendor/build.prop", "/product/etc/build.prop",
 +                        "/system_ext/etc/build.prop", "/odm/etc/build.prop"};
 +  const char* dsts[] = {"system.build.prop", "vendor.build.prop", "product.build.prop",
@@ -225,8 +206,8 @@ index 0000000..ad164f2
 +      char* eq = strchr(line, '=');
 +      if (eq && line[0] != '#') {
 +        std::string key(line, eq - line);
-+        auto it = ov.find(key);
-+        if (it != ov.end()) s = key + "=" + it->second + "\n";
++        auto it = m.find(key);
++        if (it != m.end()) s = key + "=" + it->second + "\n";
 +      }
 +      fputs(s.c_str(), o);
 +    }
@@ -237,39 +218,23 @@ index 0000000..ad164f2
 +
 +int main() {
 +  auto ov = load_overrides();
-+
-+  Ctx ctx;
-+  __system_property_foreach(foreach_cb, &ctx);
-+  LOG("snapshot %zu props", ctx.kv.size());
-+  if (ctx.kv.empty()) { LOG("empty snapshot, abort"); return 1; }
++  if (ov.empty()) { LOG("no overrides loaded, abort"); return 1; }
 +
 +  if (mkdir(kOutDir, 0755) != 0 && errno != EEXIST) {
 +    LOG("mkdir %s: %s", kOutDir, strerror(errno)); return 1;
 +  }
 +
-+  // Apply overrides onto the snapshot; track which override keys were seen so
-+  // brand-new keys (present only in policy) are appended.
-+  std::map<std::string, bool> seen;
 +  std::string tmp = std::string(kOutDir) + "/props.list.tmp";
 +  std::string dst = std::string(kOutDir) + "/props.list";
 +  FILE* o = fopen(tmp.c_str(), "we");
 +  if (!o) { LOG("open %s: %s", tmp.c_str(), strerror(errno)); return 1; }
-+  size_t over = 0;
-+  for (auto& kvp : ctx.kv) {
-+    const std::string* val = &kvp.second;
-+    auto it = ov.find(kvp.first);
-+    if (it != ov.end()) { val = &it->second; seen[kvp.first] = true; over++; }
++  for (const auto& kv : ov) {
 +    // Format: key<TAB>value  (value may be empty; tab keeps parsing simple)
-+    fprintf(o, "%s\t%s\n", kvp.first.c_str(), val->c_str());
-+  }
-+  for (auto& op : ov) {
-+    if (seen.count(op.first)) continue;
-+    if (op.second.empty()) continue;  // cleared keys simply omitted
-+    fprintf(o, "%s\t%s\n", op.first.c_str(), op.second.c_str());
++    fprintf(o, "%s\t%s\n", kv.key.c_str(), kv.val.c_str());
 +  }
 +  fclose(o);
 +  rename(tmp.c_str(), dst.c_str());
-+  LOG("wrote %s (%zu overridden)", dst.c_str(), over);
++  LOG("wrote %s (%zu keys)", dst.c_str(), ov.size());
 +
 +  render_build_props(ov);
 +  LOG("stage-1 spoof data ready under %s", kOutDir);
