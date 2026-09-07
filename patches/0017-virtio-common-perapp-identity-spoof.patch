@@ -1,68 +1,23 @@
 diff --git a/configs/spoof/spoof_policy.json b/configs/spoof/spoof_policy.json
 new file mode 100644
-index 0000000..e886004
+index 0000000..25d71ed
 --- /dev/null
 +++ b/configs/spoof/spoof_policy.json
-@@ -0,0 +1,50 @@
+@@ -0,0 +1,6 @@
 +{
-+  "_comment": "Per-app identity spoof policy. Target apps (by package) get the",
-+  "_comment2": "spoofed values below via a private mount-namespace redirection of",
-+  "_comment3": "the property area and build.prop files. System processes and any",
-+  "_comment4": "package not listed here read the real values unchanged.",
++  "_comment": "Stage 2 reads target packages here; spoof values live in spoof_props.txt.",
 +  "packages": [
 +    "com.example.targetapp"
-+  ],
-+  "properties": {
-+    "ro.product.model": "Pixel 9 Pro",
-+    "ro.product.system.model": "Pixel 9 Pro",
-+    "ro.product.vendor.model": "Pixel 9 Pro",
-+    "ro.product.odm.model": "Pixel 9 Pro",
-+    "ro.product.product.model": "Pixel 9 Pro",
-+    "ro.product.system_ext.model": "Pixel 9 Pro",
-+    "ro.product.system_dlkm.model": "Pixel 9 Pro",
-+    "ro.product.vendor_dlkm.model": "Pixel 9 Pro",
-+    "ro.product.odm_dlkm.model": "Pixel 9 Pro",
-+    "ro.product.system.device": "caiman",
-+    "ro.product.system.name": "caiman",
-+    "ro.product.system_dlkm.brand": "Google",
-+    "ro.build.id": "BP4A.251205.006",
-+    "ro.build.version.incremental": "13749016",
-+    "ro.build.version.security_patch": "2025-12-05",
-+    "ro.build.flavor": "caiman-user",
-+    "ro.build.display.id": "BP4A.251205.006",
-+    "ro.build.description": "caiman-user 16 BP4A.251205.006 13749016 release-keys",
-+    "ro.build.fingerprint": "google/caiman/caiman:16/BP4A.251205.006/13749016:user/release-keys",
-+    "ro.system.build.fingerprint": "google/caiman/caiman:16/BP4A.251205.006/13749016:user/release-keys",
-+    "ro.system.build.id": "BP4A.251205.006",
-+    "ro.system.build.version.incremental": "13749016",
-+    "ro.system_ext.build.fingerprint": "google/caiman/caiman:16/BP4A.251205.006/13749016:user/release-keys",
-+    "ro.system_ext.build.version.incremental": "13749016",
-+    "ro.vendor.build.fingerprint": "google/caiman/caiman:16/BP4A.251205.006/13749016:user/release-keys",
-+    "ro.vendor.build.id": "BP4A.251205.006",
-+    "ro.odm.build.fingerprint": "google/caiman/caiman:16/BP4A.251205.006/13749016:user/release-keys",
-+    "ro.odm.build.version.incremental": "13749016",
-+    "ro.product.build.fingerprint": "google/caiman/caiman:16/BP4A.251205.006/13749016:user/release-keys",
-+    "ro.product.build.id": "BP4A.251205.006",
-+    "ro.product.build.version.incremental": "13749016",
-+    "ro.bootimage.build.fingerprint": "google/caiman/caiman:16/BP4A.251205.006/13749016:user/release-keys",
-+    "ro.lineage.version": "",
-+    "ro.lineage.device": "",
-+    "ro.lineage.display.version": "",
-+    "ro.lineage.build.version": "",
-+    "ro.lineage.releasetype": "",
-+    "ro.boot.wifi_impl": "",
-+    "ro.boot.verifiedbootstate": "green"
-+  }
++  ]
 +}
 diff --git a/configs/spoof/spoof_props.txt b/configs/spoof/spoof_props.txt
 new file mode 100644
-index 0000000..8e9cc80
+index 0000000..0d574c5
 --- /dev/null
 +++ b/configs/spoof/spoof_props.txt
-@@ -0,0 +1,36 @@
-+# Per-app spoof property overrides (Stage 1 generates a spoofed prop area from
-+# these; Stage 2 will expose it only to target apps). Values chosen coherent
-+# with the real Android 16 r4 caiman build id BP4A.251205.006 / SPL 2025-12-05.
+@@ -0,0 +1,35 @@
++# Per-app spoof property overrides (Stage 1 emits data; Stage 2 exposes it only
++# to target apps). Coherent with real Android 16 r4 caiman build BP4A.251205.006.
 +ro.product.model=Pixel 9 Pro
 +ro.product.system.model=Pixel 9 Pro
 +ro.product.vendor.model=Pixel 9 Pro
@@ -97,15 +52,17 @@ index 0000000..8e9cc80
 +ro.bootimage.build.fingerprint=google/caiman/caiman:16/BP4A.251205.006/13749016:user/release-keys
 +ro.boot.verifiedbootstate=green
 diff --git a/device-common.mk b/device-common.mk
-index 892789d..63df7fe 100644
+index 892789d..8eec280 100644
 --- a/device-common.mk
 +++ b/device-common.mk
-@@ -77,3 +77,11 @@ PRODUCT_PACKAGES += \
+@@ -77,3 +77,13 @@ PRODUCT_PACKAGES += \
      fstab.virtio.gsi.sda.vendor_ramdisk \
      fstab.virtio.gsi.vdc.vendor_ramdisk \
      fstab.caiman.vendor_ramdisk
 +
-+# Identity spoof (Stage 1): generator + policy files.
++# Identity spoof (Stage 1): generator + policy files. The generator emits
++# spoofed data under /dev/spoofprop at boot; Stage 2 will expose it only to
++# target-app namespaces. No effect on system processes.
 +PRODUCT_PACKAGES += \
 +    spoofprop_gen
 +
@@ -113,61 +70,50 @@ index 892789d..63df7fe 100644
 +    $(COMMON_PATH)/configs/spoof/spoof_props.txt:$(TARGET_COPY_OUT_SYSTEM)/etc/spoof_props.txt \
 +    $(COMMON_PATH)/configs/spoof/spoof_policy.json:$(TARGET_COPY_OUT_SYSTEM)/etc/spoof_policy.json
 diff --git a/sepolicy/vendor/file_contexts b/sepolicy/vendor/file_contexts
-index 09e96bd..5768d57 100644
+index 09e96bd..9ae7700 100644
 --- a/sepolicy/vendor/file_contexts
 +++ b/sepolicy/vendor/file_contexts
-@@ -11,3 +11,8 @@
+@@ -11,3 +11,7 @@
  # Executables
  /vendor/bin/hw/android\.hardware\.composer\.hwc3-service\.drm(|\.[0-9a-z_]+)		u:object_r:hal_graphics_composer_default_exec:s0
  /vendor/bin/virtgpu_detect								u:object_r:vendor_virtgpu_detect_exec:s0
 +
 +# spoofprop_gen
 +/vendor/bin/spoofprop_gen				u:object_r:spoofprop_gen_exec:s0
-+/dev/__properties_spoof__(/.*)?				u:object_r:spoofprop_file:s0
 +/dev/spoofprop(/.*)?					u:object_r:spoofprop_file:s0
 diff --git a/sepolicy/vendor/spoofprop_gen.te b/sepolicy/vendor/spoofprop_gen.te
 new file mode 100644
-index 0000000..c7b7115
+index 0000000..bb43114
 --- /dev/null
 +++ b/sepolicy/vendor/spoofprop_gen.te
-@@ -0,0 +1,38 @@
-+# spoofprop_gen: builds a spoofed copy of the property area under
-+# /dev/__properties_spoof__ and spoofed build.prop files under /dev/spoofprop.
-+# Runs at post-fs-data, exits immediately. Enforcing.
+@@ -0,0 +1,28 @@
++# spoofprop_gen (Stage 1): snapshots the real property area and renders spoofed
++# build.prop copies to /dev/spoofprop. Performs NO mounts and NO property-area
++# writes, so it needs no privileged permissions. Enforcing.
 +type spoofprop_gen, domain;
 +type spoofprop_gen_exec, exec_type, vendor_file_type, file_type;
 +type spoofprop_file, file_type;
 +
 +init_daemon_domain(spoofprop_gen)
 +
-+# Read the real property area (snapshot) and the policy file.
-+r_dir_file(spoofprop_gen, properties_device)
-+allow spoofprop_gen system_file:file r_file_perms;
-+allow spoofprop_gen system_file:dir r_dir_perms;
-+
-+# Read the source build.prop files it renders spoofed copies from.
-+allow spoofprop_gen system_file:file r_file_perms;
-+
-+# Create and populate the spoofed copies (own label, NOT properties_device,
-+# which keeps clear of the `neverallow {domain -init} properties_device:file`).
-+allow spoofprop_gen spoofprop_file:dir { create add_name remove_name write search read open rmdir setattr };
-+allow spoofprop_gen spoofprop_file:file { create open read write getattr setattr unlink map rename };
-+type_transition spoofprop_gen device:dir spoofprop_file;
-+type_transition spoofprop_gen device:file spoofprop_file;
-+
-+# Private mount namespace + bind mount the copy over /dev/__properties__.
-+allow spoofprop_gen self:capability { sys_admin };
-+allow spoofprop_gen labeledfs:filesystem { mount unmount };
-+allow spoofprop_gen tmpfs:filesystem { mount unmount };
-+allow spoofprop_gen spoofprop_file:filesystem { mount unmount associate };
-+allow spoofprop_gen properties_device:dir mounton;
-+
-+# __system_property_add on the (spoof-labeled) area writes memory it mapped;
-+# reading serial/area also needs these standard property accesses.
++# Read the live property area (snapshot via __system_property_foreach).
++allow spoofprop_gen properties_device:dir r_dir_perms;
++allow spoofprop_gen properties_device:file r_file_perms;
 +allow spoofprop_gen properties_serial:file r_file_perms;
 +allow spoofprop_gen property_info:file r_file_perms;
++get_prop(spoofprop_gen, property_type)
 +
-+# Log to kmsg.
++# Read the policy file and source build.prop files (system_file-labeled).
++allow spoofprop_gen system_file:dir r_dir_perms;
++allow spoofprop_gen system_file:file r_file_perms;
++
++# Create and populate the spoofed output under /dev (own spoofprop_file label).
++allow spoofprop_gen device:dir { search write add_name remove_name };
++type_transition spoofprop_gen device:dir spoofprop_file "spoofprop";
++allow spoofprop_gen spoofprop_file:dir { create search read write open add_name remove_name setattr getattr };
++allow spoofprop_gen spoofprop_file:file { create open read write getattr setattr unlink rename };
++
++# Log to kmsg (stdio_to_kmsg).
 +allow spoofprop_gen kmsg_device:chr_file w_file_perms;
 diff --git a/services/spoofprop_gen/Android.bp b/services/spoofprop_gen/Android.bp
 new file mode 100644
@@ -186,51 +132,41 @@ index 0000000..9075b8f
 +}
 diff --git a/services/spoofprop_gen/spoofprop_gen.cpp b/services/spoofprop_gen/spoofprop_gen.cpp
 new file mode 100644
-index 0000000..b7f277d
+index 0000000..ad164f2
 --- /dev/null
 +++ b/services/spoofprop_gen/spoofprop_gen.cpp
-@@ -0,0 +1,178 @@
+@@ -0,0 +1,139 @@
 +/*
 + * SPDX-License-Identifier: Apache-2.0
 + *
-+ * spoofprop_gen (Stage 1) — construct a spoofed, read-only copy of the system
-+ * property area plus spoofed build.prop text files, WITHOUT disturbing the real
-+ * ones. Stage 2 will bind the result only into target-app mount namespaces.
++ * spoofprop_gen (Stage 1) - emit the spoofed identity DATA that Stage 2 will
++ * expose only to target-app mount namespaces. This stage performs NO mounts and
++ * NO property-area writes, so it needs no privileged SELinux permissions and
++ * cannot affect any running process:
 + *
-+ * Bionic constraints handled here:
-+ *   - __system_property_set_filename() is disabled; area init/read use the
-+ *     hardcoded /dev/__properties__ path. So we redirect that path with a
-+ *     private-namespace bind mount before (re)initialising the area.
-+ *   - A read-only reload cannot be written to; a fresh writable area
-+ *     (__system_property_area_init) reads <dir>/property_info for SELinux
-+ *     contexts and creates empty prop files, which we then populate.
++ *   1. Snapshot every (name,value) from the live property area via
++ *      __system_property_foreach, applying the policy overrides from
++ *      /system/etc/spoof_props.txt, and write the result as a flat
++ *      "name<TAB>value" list to /dev/spoofprop/props.list.
++ *   2. Render spoofed copies of the build.prop files (same overrides applied
++ *      line-by-line) under /dev/spoofprop/.
 + *
-+ * Sequence:
-+ *   1. Snapshot every (name,value) from the real area via __system_property_foreach.
-+ *   2. Seed /dev/__properties_spoof__ with a copy of the real property_info tree.
-+ *   3. unshare(CLONE_NEWNS)+rprivate, bind the spoof dir over /dev/__properties__.
-+ *   4. __system_property_area_init() -> fresh writable area on the spoof dir.
-+ *   5. Re-add each snapshotted prop, substituting policy overrides.
-+ *   6. Exit: private ns torn down; real area untouched elsewhere; the spoof
-+ *      copy persists at /dev/__properties_spoof__ for Stage 2.
-+ * Also renders spoofed build.prop files under /dev/spoofprop/ for file reads.
++ * Stage 2 (zygote, which is already permitted to mount) will, inside a target
++ * app's private namespace, mount a tmpfs, rebuild a property area from
++ * props.list, bind the spoofed build.prop files over the real ones, and call
++ * __system_properties_zygote_reload(). System processes never see any of this.
 + *
 + * Fabricates observable identity strings only; does not touch AVB/attestation.
 + */
 +
-+#define _GNU_SOURCE
 +#include <dirent.h>
 +#include <fcntl.h>
-+#include <sched.h>
-+#include <sys/mount.h>
-+#include <sys/sendfile.h>
 +#include <sys/stat.h>
 +#include <unistd.h>
 +
 +#include <cerrno>
 +#include <cstdio>
 +#include <cstring>
-+#include <algorithm>
 +#include <map>
 +#include <string>
 +#include <utility>
@@ -240,10 +176,8 @@ index 0000000..b7f277d
 +
 +#define LOG(...) do { fprintf(stderr, "spoofprop_gen: " __VA_ARGS__); fprintf(stderr, "\n"); } while (0)
 +
-+static const char* kRealDir   = "/dev/__properties__";
-+static const char* kSpoofDir  = "/dev/__properties_spoof__";
 +static const char* kPropsFile = "/system/etc/spoof_props.txt";
-+static const char* kBuildPropDir = "/dev/spoofprop";
++static const char* kOutDir    = "/dev/spoofprop";
 +
 +// ---- policy overrides ------------------------------------------------------
 +static std::map<std::string, std::string> load_overrides() {
@@ -252,9 +186,9 @@ index 0000000..b7f277d
 +  if (!f) { LOG("no %s: %s", kPropsFile, strerror(errno)); return m; }
 +  char* line = nullptr; size_t cap = 0; ssize_t n;
 +  while ((n = getline(&line, &cap, f)) != -1) {
-+    if (n && line[n-1] == n) line[--n] = 0;
-+    if (n == 0 || line[0] == #) continue;
-+    char* eq = strchr(line, =);
++    if (n && line[n-1] == '\n') line[--n] = 0;
++    if (n == 0 || line[0] == '#') continue;
++    char* eq = strchr(line, '=');
 +    if (!eq) continue;
 +    *eq = 0;
 +    m.emplace(line, eq + 1);
@@ -264,42 +198,32 @@ index 0000000..b7f277d
 +}
 +
 +// ---- snapshot of the live property area ------------------------------------
-+struct Snap { std::vector<std::pair<std::string,std::string>> kv; };
-+
++struct Ctx {
++  std::vector<std::pair<std::string, std::string>> kv;
++};
 +static void read_cb(void* cookie, const char* name, const char* value, uint32_t) {
-+  static_cast<Snap*>(cookie)->kv.emplace_back(name, value);
++  static_cast<Ctx*>(cookie)->kv.emplace_back(name, value);
 +}
 +static void foreach_cb(const prop_info* pi, void* cookie) {
 +  __system_property_read_callback(pi, read_cb, cookie);
 +}
 +
-+// ---- copy the serialized property_info context tree ------------------------
-+static bool copy_file(const std::string& src, const std::string& dst) {
-+  int in = open(src.c_str(), O_RDONLY | O_CLOEXEC);
-+  if (in < 0) { LOG("open %s: %s", src.c_str(), strerror(errno)); return false; }
-+  int out = open(dst.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
-+  if (out < 0) { LOG("open %s: %s", dst.c_str(), strerror(errno)); close(in); return false; }
-+  struct stat st{}; fstat(in, &st);
-+  off_t off = 0; ssize_t rem = st.st_size; bool ok = true;
-+  while (rem > 0) { ssize_t k = sendfile(out, in, &off, rem); if (k <= 0) { ok = (k==0); break; } rem -= k; }
-+  close(in); close(out); return ok;
-+}
-+
-+static void render_build_props(const std::map<std::string,std::string>& ov) {
-+  const char* srcs[] = { "/system/build.prop","/vendor/build.prop","/product/etc/build.prop",
-+                         "/system_ext/etc/build.prop","/odm/etc/build.prop" };
-+  const char* dsts[] = { "system.build.prop","vendor.build.prop","product.build.prop",
-+                         "system_ext.build.prop","odm.build.prop" };
-+  mkdir(kBuildPropDir, 0755);
++static void render_build_props(const std::map<std::string, std::string>& ov) {
++  const char* srcs[] = {"/system/build.prop", "/vendor/build.prop", "/product/etc/build.prop",
++                        "/system_ext/etc/build.prop", "/odm/etc/build.prop"};
++  const char* dsts[] = {"system.build.prop", "vendor.build.prop", "product.build.prop",
++                        "system_ext.build.prop", "odm.build.prop"};
 +  for (size_t i = 0; i < 5; i++) {
-+    FILE* in = fopen(srcs[i], "re"); if (!in) continue;
-+    std::string out = std::string(kBuildPropDir) + "/" + dsts[i];
-+    FILE* o = fopen(out.c_str(), "we"); if (!o) { fclose(in); continue; }
++    FILE* in = fopen(srcs[i], "re");
++    if (!in) continue;
++    std::string out = std::string(kOutDir) + "/" + dsts[i];
++    FILE* o = fopen(out.c_str(), "we");
++    if (!o) { fclose(in); continue; }
 +    char* line = nullptr; size_t cap = 0; ssize_t n;
 +    while ((n = getline(&line, &cap, in)) != -1) {
 +      std::string s(line);
-+      char* eq = strchr(line, =);
-+      if (eq && line[0] != #) {
++      char* eq = strchr(line, '=');
++      if (eq && line[0] != '#') {
 +        std::string key(line, eq - line);
 +        auto it = ov.find(key);
 +        if (it != ov.end()) s = key + "=" + it->second + "\n";
@@ -314,58 +238,41 @@ index 0000000..b7f277d
 +int main() {
 +  auto ov = load_overrides();
 +
-+  // 1. Snapshot the real area (still mapped read-only by libc init).
-+  Snap snap;
-+  __system_property_foreach(foreach_cb, &snap);
-+  LOG("snapshot %zu props", snap.kv.size());
-+  if (snap.kv.empty()) { LOG("empty snapshot, abort"); return 1; }
++  Ctx ctx;
++  __system_property_foreach(foreach_cb, &ctx);
++  LOG("snapshot %zu props", ctx.kv.size());
++  if (ctx.kv.empty()) { LOG("empty snapshot, abort"); return 1; }
 +
-+  // 2. Seed spoof dir with the real SELinux context tree.
-+  mkdir(kSpoofDir, 0711);
-+  std::string real_info = std::string(kRealDir) + "/property_info";
-+  std::string spoof_info = std::string(kSpoofDir) + "/property_info";
-+  if (!copy_file(real_info, spoof_info)) { LOG("copy property_info failed"); return 1; }
++  if (mkdir(kOutDir, 0755) != 0 && errno != EEXIST) {
++    LOG("mkdir %s: %s", kOutDir, strerror(errno)); return 1;
++  }
++
++  // Apply overrides onto the snapshot; track which override keys were seen so
++  // brand-new keys (present only in policy) are appended.
++  std::map<std::string, bool> seen;
++  std::string tmp = std::string(kOutDir) + "/props.list.tmp";
++  std::string dst = std::string(kOutDir) + "/props.list";
++  FILE* o = fopen(tmp.c_str(), "we");
++  if (!o) { LOG("open %s: %s", tmp.c_str(), strerror(errno)); return 1; }
++  size_t over = 0;
++  for (auto& kvp : ctx.kv) {
++    const std::string* val = &kvp.second;
++    auto it = ov.find(kvp.first);
++    if (it != ov.end()) { val = &it->second; seen[kvp.first] = true; over++; }
++    // Format: key<TAB>value  (value may be empty; tab keeps parsing simple)
++    fprintf(o, "%s\t%s\n", kvp.first.c_str(), val->c_str());
++  }
++  for (auto& op : ov) {
++    if (seen.count(op.first)) continue;
++    if (op.second.empty()) continue;  // cleared keys simply omitted
++    fprintf(o, "%s\t%s\n", op.first.c_str(), op.second.c_str());
++  }
++  fclose(o);
++  rename(tmp.c_str(), dst.c_str());
++  LOG("wrote %s (%zu overridden)", dst.c_str(), over);
 +
 +  render_build_props(ov);
-+
-+  // 3. Private ns + bind spoof over the hardcoded path.
-+  if (unshare(CLONE_NEWNS) != 0) { LOG("unshare: %s", strerror(errno)); return 1; }
-+  if (mount(nullptr, "/", nullptr, MS_REC | MS_PRIVATE, nullptr) != 0) {
-+    LOG("rprivate: %s", strerror(errno)); return 1;
-+  }
-+  if (mount(kSpoofDir, kRealDir, nullptr, MS_BIND | MS_REC, nullptr) != 0) {
-+    LOG("bind: %s", strerror(errno)); return 1;
-+  }
-+
-+  // 4. Fresh writable area on the spoof dir (reads copied property_info).
-+  bool xattr_fail = false;
-+  // Returns -1 when the fsetxattr to a property_type context is SELinux-denied
-+  // (expected: our copy is labeled spoofprop_file, not property_type). The area
-+  // is still created and usable, so proceed regardless.
-+  (void)__system_property_area_init();
-+  (void)xattr_fail;
-+
-+  // 5. Re-add every prop, substituting overrides.
-+  size_t added = 0, over = 0;
-+  for (auto& [k, v] : snap.kv) {
-+    const std::string* val = &v;
-+    auto it = ov.find(k);
-+    if (it != ov.end()) { val = &it->second; over++; }
-+    if (val->size() >= PROP_VALUE_MAX) { LOG("skip oversize %s", k.c_str()); continue; }
-+    if (__system_property_add(k.c_str(), (unsigned)k.size(), val->c_str(), (unsigned)val->size()) != 0)
-+      LOG("add failed %s", k.c_str());
-+    else added++;
-+  }
-+  // Overrides that did not exist in the real area (e.g. cleared lineage props
-+  // are simply omitted; genuinely-new keys get added here).
-+  for (auto& [k, v] : ov) {
-+    if (std::none_of(snap.kv.begin(), snap.kv.end(),
-+                     [&](auto& p){ return p.first == k; })) {
-+      if (v.empty() || v.size() >= PROP_VALUE_MAX) continue;
-+      if (__system_property_add(k.c_str(), (unsigned)k.size(), v.c_str(), (unsigned)v.size()) == 0) added++;
-+    }
-+  }
-+  LOG("rebuilt spoof area: %zu props, %zu overridden -> %s", added, over, kSpoofDir);
++  LOG("stage-1 spoof data ready under %s", kOutDir);
 +  return 0;
 +}
 diff --git a/services/spoofprop_gen/spoofprop_gen.rc b/services/spoofprop_gen/spoofprop_gen.rc
