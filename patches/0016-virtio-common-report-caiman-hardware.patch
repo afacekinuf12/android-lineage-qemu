@@ -1,0 +1,98 @@
+diff --git a/BoardConfigCommon.mk b/BoardConfigCommon.mk
+index f67b08a..473f677 100644
+--- a/BoardConfigCommon.mk
++++ b/BoardConfigCommon.mk
+@@ -13,8 +13,17 @@ TARGET_GRUB_BOOT_CONFIGS += $(COMMON_PATH)/bootmgr/grub/grub-boot.cfg
+ TARGET_GRUB_INSTALL_CONFIGS += $(COMMON_PATH)/bootmgr/grub/grub-install.cfg
+ 
+ # Bootconfig
++# ro.hardware / ro.boot.hardware are derived by init from androidboot.hardware
++# at the earliest boot phase, so reporting the Pixel 9 Pro codename "caiman"
++# here needs no runtime resetprop and touches no read-only property area (which
++# SELinux neverallows for any domain but init). ro.hardware is ALSO the selector
++# for init.${ro.hardware}.rc and, on normal boot, the default fstab.${ro.hardware}
++# path. To avoid the HAL-rc-import bootloop that a bare rename would cause,
++# device-common.mk additionally installs caiman-named copies of the init rc and
++# fstab (see that file); the original virtio-named copies are kept so the GSI
++# fstab_suffix path (androidboot.fstab_suffix=virtio.gsi.*) is unaffected.
+ BOARD_BOOTCONFIG += \
+-    androidboot.hardware=virtio \
++    androidboot.hardware=caiman \
+     androidboot.partition_map=\"vdb,userdata\"
+ 
+ # Fstab
+diff --git a/configs/fstab/Android.bp b/configs/fstab/Android.bp
+index 41e7b09..9ef8a8a 100644
+--- a/configs/fstab/Android.bp
++++ b/configs/fstab/Android.bp
+@@ -44,6 +44,17 @@ prebuilt_etc {
+     vendor_ramdisk_available: true,
+ }
+ 
++// ro.hardware reports "caiman" (see BoardConfigCommon.mk), so on normal boot
++// GetFstabPath() looks for fstab.caiman. It is byte-identical to fstab.virtio;
++// the GSI paths keep using fstab.virtio.gsi.* via androidboot.fstab_suffix.
++prebuilt_etc {
++    name: "fstab.caiman",
++    src: ":gen_fstab_virtio",
++    filename: "fstab.caiman",
++    vendor: true,
++    vendor_ramdisk_available: true,
++}
++
+ genrule {
+     name: "gen_fstab_virtio_gsi_sda",
+     srcs: [":gen_fstab_virtio"],
+diff --git a/device-common.mk b/device-common.mk
+index b80b7ad..892789d 100644
+--- a/device-common.mk
++++ b/device-common.mk
+@@ -20,13 +20,21 @@ TARGET_MINIGBM_PLATFORM := generic
+ TARGET_GRAPHICS_COMPOSER_HAL := drm_hwcomposer
+ 
+ # Init
++# ro.hardware reports "caiman" (see BoardConfigCommon.mk), and init expands
++# "import /vendor/etc/init/hw/init.${ro.hardware}.rc" before any Magisk/resetprop
++# phase, so the caiman-named HAL rc must physically exist or the device bootloops.
++# Install the exact same VirtIO service graph under BOTH names: init.caiman.rc is
++# what init imports now, init.virtio.rc is retained so nothing that still refers to
++# the old name breaks.
+ PRODUCT_COPY_FILES += \
+-    $(COMMON_PATH)/configs/init/init.virtio.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.virtio.rc
++    $(COMMON_PATH)/configs/init/init.virtio.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.virtio.rc \
++    $(COMMON_PATH)/configs/init/init.virtio.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.caiman.rc
+ 
+ PRODUCT_PACKAGES += \
+     fstab.virtio \
+     fstab.virtio.gsi.sda \
+-    fstab.virtio.gsi.vdc
++    fstab.virtio.gsi.vdc \
++    fstab.caiman
+ 
+ # Input
+ PRODUCT_COPY_FILES += \
+@@ -44,8 +52,11 @@ else ifneq ($(wildcard $(TARGET_PREBUILT_KERNEL_DIR)/kernel),)
+ endif
+ 
+ # Recovery
++# Recovery's first-stage init imports /init.recovery.${ro.hardware}.rc, which is
++# now "caiman". Install it under both names for the same reason as the vendor rc.
+ PRODUCT_COPY_FILES += \
+-    $(COMMON_PATH)/configs/init/init.recovery.virtio.rc:$(TARGET_COPY_OUT_RECOVERY)/root/init.recovery.virtio.rc
++    $(COMMON_PATH)/configs/init/init.recovery.virtio.rc:$(TARGET_COPY_OUT_RECOVERY)/root/init.recovery.virtio.rc \
++    $(COMMON_PATH)/configs/init/init.recovery.virtio.rc:$(TARGET_COPY_OUT_RECOVERY)/root/init.recovery.caiman.rc
+ 
+ # Shipping API level
+ ifeq ($(TARGET_AUDIO_HAL),ranchu)
+@@ -59,7 +70,10 @@ PRODUCT_SOONG_NAMESPACES += \
+     $(COMMON_PATH)
+ 
+ # Vendor ramdisk
++# First-stage mount (in the vendor ramdisk) also resolves fstab.${ro.hardware},
++# so the caiman-named fstab must be present there too.
+ PRODUCT_PACKAGES += \
+     fstab.virtio.vendor_ramdisk \
+     fstab.virtio.gsi.sda.vendor_ramdisk \
+-    fstab.virtio.gsi.vdc.vendor_ramdisk
++    fstab.virtio.gsi.vdc.vendor_ramdisk \
++    fstab.caiman.vendor_ramdisk

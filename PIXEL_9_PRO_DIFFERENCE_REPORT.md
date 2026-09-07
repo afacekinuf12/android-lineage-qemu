@@ -55,7 +55,7 @@ be proven from source configuration alone.
 | `ro.build.version.security_patch` | OTA-version dependent | `2026-02-05` via resetprop | Keep in sync with the mirrored OTA |
 | `ro.soc.manufacturer` | Google | `Google` | Build override + resetprop |
 | `ro.soc.model` | `zumapro` (Tensor G4 platform) | `zumapro` (build.prop + resetprop) | Property text does not establish hardware equivalence |
-| `ro.hardware*` | Pixel platform-specific values | `caiman` reported via resetprop; HAL resolution stays on the real VirtIO/QEMU platform | String aligned; kernel cmdline unchanged to avoid HAL bootloop |
+| `ro.hardware*` | Pixel platform-specific values | `caiman` set at the bootconfig source (patch 0016); init derives `ro.hardware`/`ro.boot.hardware`=`caiman` before HAL rc import, and matching `init.caiman.rc`/`fstab.caiman` are installed so resolution succeeds | String aligned; HAL graph is the VirtIO one under a caiman name |
 | `ro.boot.*` | Pixel bootloader and verified-boot state | `ripcurrentpro-*` bootloader and unique serial via SMBIOS; `verifiedbootstate` string set to `green` by resetprop while the real AVB state stays `orange` | Boot chain and attestation are not spoofed |
 
 ## Implemented Compatibility Improvements
@@ -146,7 +146,7 @@ begin with. Runtime state is verifiable with `tools/audit-fingerprint.sh`.
 | `Build` brand/manufacturer/model/device/product | Pixel 9 Pro / caiman | Set at build + resetprop | Fixed |
 | `ro.build.fingerprint` | Google-signed | `google/caiman/...:user/release-keys` | Fixed (string); signature mismatch remains |
 | `ro.board.platform` / `ro.product.board` | `zumapro` / `caiman` | `zumapro`/`caiman` baked in via libinit_virt vendor_init override | Fixed at build time (no Magisk) |
-| `ro.hardware` / `ro.boot.hardware` | `zumapro`/device value | Kept truthful (`virtio`) at build time; `caiman` disguise deferred to a post-boot resetprop step. Overriding it in vendor_init caused a HAL bootloop and was removed | String disguise runtime-only |
+| `ro.hardware` / `ro.boot.hardware` | `zumapro`/device value | `caiman` at build time via the bootconfig source (patch 0016), with `init.caiman.rc`/`fstab.caiman` installed so the HAL rc import and first-stage mount resolve. No vendor_init runtime override, no bootloop | Fixed at build time |
 | `ro.serialno` / `ro.bootloader` | device values | Unique SMBIOS serial + `ripcurrentpro-*` | Fixed |
 | `ro.kernel.qemu`, `qemu.*`, `init.svc.qemud` | absent | Not present on the `virt` board | Not present |
 | `/dev/qemu_pipe`, `/dev/socket/qemud`, `libc_malloc_debug_qemu.so`, `/sys/qemu_trace`, `qemu-props` | absent | Not created by the `virt` board (goldfish/ranchu-only) | Not present |
@@ -191,21 +191,28 @@ cannot be set from build.prop, but they can be overridden safely in
   `ro.hardware.chipname` and `ro.soc.*`. These are consumed only as identity
   strings, never to resolve a HAL rc import path, so overriding them here is
   safe.
-- **`ro.hardware`/`ro.boot.hardware` are deliberately NOT overridden here.**
+- **`ro.hardware`/`ro.boot.hardware` are NOT overridden in vendor_init.**
   `vendor_load_properties()` runs from `PropertyInit()` ->
   `PropertyLoadBootDefaults()`, which `SecondStageMain` calls BEFORE
   `LoadBootScripts()`. `LoadBootScripts()` then expands
   `import /vendor/etc/init/hw/init.${ro.hardware}.rc`. Rewriting `ro.hardware`
   to `caiman` in vendor_init changed the early hardware service selector and
-  the device bootlooped. Installing a byte-identical `init.caiman.rc` alias was
-  tested and did not make the override safe, so the alias and override were
-  removed together.
+  the device bootlooped, because the value was already `virtio` when the import
+  target was computed and no `init.caiman.rc` existed.
   (Verified against LineageOS `lineage-23.2` `system/core/init/init.cpp`
-  `SecondStageMain` and `property_service.cpp`
-  `PropertyLoadBootDefaults`.) `ro.hardware` therefore keeps its truthful
-  `virtio` value at build time; the `caiman` string disguise, if needed, must
-  be applied at runtime after boot via resetprop, which runs long after
-  `LoadBootScripts()` and cannot affect HAL loading.
+  `SecondStageMain` and `property_service.cpp` `PropertyLoadBootDefaults`.)
+- **Instead, `patches/0016` fixes the value at its boot-config source.** It
+  changes `androidboot.hardware` in `device/virt/virtio-common`
+  `BoardConfigCommon.mk` from `virtio` to `caiman`. `init` populates
+  `ro.hardware`/`ro.boot.hardware` from that value in `ExportKernelBootProps()`,
+  which runs at the very start of second-stage init — so the value is `caiman`
+  *before* the `.rc` import is computed, not re-set afterward. To keep the now
+  `caiman`-keyed selectors resolvable, 0016 also installs `init.caiman.rc`,
+  `init.recovery.caiman.rc` and `fstab.caiman` as byte-identical copies of the
+  existing `virtio` files (the originals are retained, and the GSI path still
+  uses `androidboot.fstab_suffix=virtio.gsi.*`, a different key). This is a pure
+  build-time fix: no runtime resetprop, and no `/dev/__properties__` write
+  (which `system/sepolicy` `neverallow`s for every domain but `init`).
 
 ## Runtime Capture Procedure
 

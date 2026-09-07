@@ -144,6 +144,8 @@ git -C device/virt/virtio_arm64only checkout -- lineage_virtio_arm64only.mk
 # Restore files touched by older patch series so cached runners converge on the
 # current source state even after patches are removed or reverted.
 git -C device/virt/virtio-common checkout -- \
+  BoardConfigCommon.mk \
+  configs/fstab/Android.bp \
   device-common.mk \
   services/virtgpu_detect/virtgpu_detect.c
 git -C external/mesa checkout -- \

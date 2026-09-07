@@ -91,7 +91,11 @@ discovers the VirtIO device trees. The patched image:
 - configures the ARM64 UTM template with four CPUs and 4 GiB of memory; and
 - reports `Mali-G715` in the public Vulkan device name and in ANGLE's structured
   GL renderer description while retaining the real ANGLE/SwiftShader backend
-  marker and GL vendor required for correct renderer feature detection.
+  marker and GL vendor required for correct renderer feature detection; and
+- reports `ro.hardware`/`ro.boot.hardware` as `caiman` by setting the
+  `androidboot.hardware` bootconfig value at build time, installing
+  byte-identical `init.caiman.rc`/`fstab.caiman` so the HAL rc import and
+  first-stage mount still resolve (the GSI `fstab_suffix` path is untouched).
 
 For Pixel 9 Pro application-layout and resource testing, apply the optional
 compatibility profile before importing the VM. The host should have enough

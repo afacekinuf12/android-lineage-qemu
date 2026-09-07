@@ -104,7 +104,15 @@ test ! -f "$permissions/android.hardware.sensor.barometer.xml"
 test ! -f "$product_permissions/android.hardware.type.pc.xml"
 test -f "$PRODUCT_OUT/vendor/etc/init/hw/init.virtio.rc"
 test -f "$init_virt"
-test ! -f "$PRODUCT_OUT/vendor/etc/init/hw/init.caiman.rc"
+# ro.hardware now reports "caiman" (patch 0016), so init expands
+# init.${ro.hardware}.rc -> init.caiman.rc during early boot. That file MUST be
+# staged or the guest bootloops when it cannot find its HAL service graph. The
+# caiman-named fstab must likewise exist for normal-boot first-stage mount. Both
+# are byte-identical to their virtio-named originals, which are retained.
+test -f "$PRODUCT_OUT/vendor/etc/init/hw/init.caiman.rc"
+cmp -s "$PRODUCT_OUT/vendor/etc/init/hw/init.virtio.rc" \
+  "$PRODUCT_OUT/vendor/etc/init/hw/init.caiman.rc"
+test -f "$PRODUCT_OUT/vendor/etc/fstab.caiman"
 if grep -q 'debug.angle.gl_\(vendor\|renderer\)' "$init_virt"; then
   echo "unsafe global ANGLE identity override remains in $init_virt" >&2
   exit 1

@@ -35,11 +35,18 @@ with `tools/personalize-utm.py` before import and
   `ripcurrentpro-*` bootloader version (`ro.bootloader`) so runtime identity no
   longer reports `unknown` or `0.0.0`. Re-applying with `--preserve-identity`
   keeps the existing serial and is idempotent.
-- The `magisk/pixel-9-pro-identity/` module rewrites the read-only `ro.boot.*`,
-  `ro.hardware`, per-partition fingerprints and security-patch level at
+- `ro.hardware`/`ro.boot.hardware` report `caiman` (patch 0016) by changing the
+  `androidboot.hardware` bootconfig value, which `init` reads into `ro.hardware`
+  before it imports `init.${ro.hardware}.rc`. Byte-identical `init.caiman.rc`,
+  `init.recovery.caiman.rc` and `fstab.caiman` are installed alongside the
+  retained `virtio` copies so the HAL rc import and first-stage mount still
+  resolve and the GSI `fstab_suffix` path is unaffected. This is a build-time
+  fix with no runtime resetprop and no SELinux property-area write.
+- The `magisk/pixel-9-pro-identity/` module remains available to rewrite the
+  read-only `ro.boot.*`, per-partition fingerprints and security-patch level at
   `post-fs-data`, which build.prop cannot cover, and ships a `pif.json` for
-  PlayIntegrityFix. The kernel cmdline is left unchanged so `init` still
-  resolves the real VirtIO HAL set instead of a non-existent `caiman` one.
+  PlayIntegrityFix. With patch 0016 in place it no longer needs to touch
+  `ro.hardware`.
 - User builds use persistent private release keys on the build runner.
 - Existing release keys are never regenerated to rename their certificate
   subject because doing so would break OTA and platform-signature continuity.
