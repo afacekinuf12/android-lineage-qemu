@@ -147,7 +147,14 @@ git -C device/virt/virtio-common checkout -- \
   BoardConfigCommon.mk \
   configs/fstab/Android.bp \
   device-common.mk \
+  sepolicy/vendor/file_contexts \
   services/virtgpu_detect/virtgpu_detect.c
+# Patch 0017 adds new (untracked) files; remove them so apply.sh re-applies from
+# a clean state on incremental self-hosted runners (git checkout won't delete
+# untracked paths, which would otherwise leave 0017 half-applied).
+rm -rf device/virt/virtio-common/services/spoofprop_gen \
+       device/virt/virtio-common/configs/spoof \
+       device/virt/virtio-common/sepolicy/vendor/spoofprop_gen.te
 git -C external/mesa checkout -- \
   android/mesa3d_cross.mk \
   src/gallium/drivers/llvmpipe/lp_screen.c \
