@@ -1,0 +1,110 @@
+diff --git a/core/jni/com_android_internal_os_Zygote.cpp b/core/jni/com_android_internal_os_Zygote.cpp
+index a92c6c871..be2841682 100644
+--- a/core/jni/com_android_internal_os_Zygote.cpp
++++ b/core/jni/com_android_internal_os_Zygote.cpp
+@@ -1816,14 +1816,29 @@ static void ReloadBuildJavaConstants(JNIEnv* env) {
+ }
+ 
+ static void BindMountSyspropOverride(fail_fn_t fail_fn, JNIEnv* env) {
+-  std::string source = "/dev/__properties__/appcompat_override";
++  // Identity spoof (Stage B): init (Stage A) builds a COMPLETE spoofed copy of
++  // the property area at /dev/__properties_spoof__ (all per-context files +
++  // property_info + properties_serial, byte- and SELinux-label-identical to the
++  // real area, with a few build_prop/fingerprint_prop values rewritten). Bind it
++  // over /dev/__properties__ in this app's private mount namespace so BOTH the
++  // libc property API (walk-A, after the reload below) AND direct file reads of
++  // /dev/__properties__/u:object_r:*:s0 (walk-B) observe the spoofed values.
++  // System processes never enter this namespace, so they keep the real values.
++  //
++  // Fall back to the upstream per-property appcompat_override subdir when the
++  // spoof area is absent (e.g. RELEASE_WRITE_APPCOMPAT_OVERRIDE_SYSTEM_PROPERTIES
++  // builds), preserving stock behavior.
+   std::string target = "/dev/__properties__";
+-  if (access(source.c_str(), F_OK) != 0) {
+-      return;
+-  }
+   if (access(target.c_str(), F_OK) != 0) {
+       return;
+   }
++  std::string source = "/dev/__properties_spoof__";
++  if (access(source.c_str(), F_OK) != 0) {
++      source = "/dev/__properties__/appcompat_override";
++      if (access(source.c_str(), F_OK) != 0) {
++          return;
++      }
++  }
+   BindMount(source, target, fail_fn);
+   // Reload the system properties file, to ensure new values are read into memory
+   __system_properties_zygote_reload();
+diff --git a/services/core/java/com/android/server/am/ProcessList.java b/services/core/java/com/android/server/am/ProcessList.java
+index a421ee65f..7002e9bb2 100644
+--- a/services/core/java/com/android/server/am/ProcessList.java
++++ b/services/core/java/com/android/server/am/ProcessList.java
+@@ -184,6 +184,44 @@ import java.util.function.Function;
+ public final class ProcessList implements ProcessStateController.ProcessLruUpdater {
+     static final String TAG = TAG_WITH_CLASS_NAME ? "ProcessList" : TAG_AM;
+ 
++    // Identity spoof (Stage B): packages that should receive the spoofed property
++    // area, parsed once from /system/etc/spoof_policy.json ({"packages":[...]})
++    // and cached. Read-only config shipped in /system; empty/absent => feature off.
++    private static final String SPOOF_POLICY_PATH = "/system/etc/spoof_policy.json";
++    private static volatile android.util.ArraySet<String> sSpoofTargetPkgs = null;
++
++    private static boolean isSpoofTargetPackage(String pkg) {
++        if (pkg == null) {
++            return false;
++        }
++        android.util.ArraySet<String> set = sSpoofTargetPkgs;
++        if (set == null) {
++            set = new android.util.ArraySet<>();
++            try {
++                java.io.File f = new java.io.File(SPOOF_POLICY_PATH);
++                if (f.exists()) {
++                    byte[] raw = java.nio.file.Files.readAllBytes(f.toPath());
++                    org.json.JSONObject o = new org.json.JSONObject(
++                            new String(raw, java.nio.charset.StandardCharsets.UTF_8));
++                    org.json.JSONArray arr = o.optJSONArray("packages");
++                    if (arr != null) {
++                        for (int i = 0; i < arr.length(); i++) {
++                            String p = arr.optString(i, null);
++                            if (p != null && !p.isEmpty()) {
++                                set.add(p);
++                            }
++                        }
++                    }
++                }
++            } catch (Throwable t) {
++                // Best-effort: any parse/IO failure just leaves the feature off.
++                Slog.w(TAG, "spoof: failed to load " + SPOOF_POLICY_PATH, t);
++            }
++            sSpoofTargetPkgs = set;
++        }
++        return set.contains(pkg);
++    }
++
+     static final String TAG_PROCESS_OBSERVERS = TAG + POSTFIX_PROCESS_OBSERVERS;
+ 
+     // A system property to control if app data isolation is enabled.
+@@ -2556,6 +2594,22 @@ public final class ProcessList implements ProcessStateController.ProcessLruUpdat
+                     }
+                 }
+             }
++            // Identity spoof (Stage B): also enable the sysprop-override bind mount
++            // for packages listed in /system/etc/spoof_policy.json, on any build
++            // type. The zygote then binds the complete spoofed property area
++            // (/dev/__properties_spoof__) over /dev/__properties__ inside the app's
++            // private mount namespace, so the target app -- and only the target app
++            // -- sees the spoofed identity via both the libc API and direct file
++            // reads. System/other apps are unaffected.
++            if (!bindOverrideSysprops) {
++                final String[] pkgs = app.getProcessPackageNames();
++                for (int i = 0; i < pkgs.length; i++) {
++                    if (isSpoofTargetPackage(pkgs[i])) {
++                        bindOverrideSysprops = true;
++                        break;
++                    }
++                }
++            }
+ 
+             AppStateTracker ast = mService.mServices.mAppStateTracker;
+             if (ast != null) {

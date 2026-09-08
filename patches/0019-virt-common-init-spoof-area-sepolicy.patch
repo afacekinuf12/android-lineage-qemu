@@ -10,10 +10,10 @@ index 419c4a0..2c2f607 100644
 +# Identity spoof property area (Stage A)
 +/dev/__properties_spoof__(/.*)?		u:object_r:properties_device:s0
 diff --git a/sepolicy/vendor/init.te b/sepolicy/vendor/init.te
-index a1eb1de..1b766f3 100644
+index a1eb1de..a4610af 100644
 --- a/sepolicy/vendor/init.te
 +++ b/sepolicy/vendor/init.te
-@@ -14,3 +14,9 @@ allow init firmware_mnt_file:filesystem { mount unmount relabelfrom };
+@@ -14,3 +14,20 @@ allow init firmware_mnt_file:filesystem { mount unmount relabelfrom };
  # Persist
  allow init persist_file:dir mounton;
  allow init persist_file:filesystem { mount unmount relabelfrom relabelto };
@@ -23,3 +23,14 @@ index a1eb1de..1b766f3 100644
 +# values rewritten). Reuse the properties_device label so no new type is needed;
 +# init already holds properties_device:file create_file_perms + dir relabelto.
 +allow init properties_device:dir { create add_name remove_name write search };
++
++# Stage A (cont.): the spoof files are born-labeled (setfscreatecon) with the
++# SAME per-context labels as the real area so target apps can read them under
++# the normal get_prop() rules after the Stage B bind mount. init already has
++# create on property_type:file (build_prop, fingerprint_prop, ...); it also
++# needs create on the two dev_type labels that appear in the area:
++#   property_info      (the serialized property-context trie)
++#   properties_serial  (the global serial page)
++# The domain-wide neverallows on these already exclude init, so this is safe.
++allow init property_info:file create_file_perms;
++allow init properties_serial:file create_file_perms;
