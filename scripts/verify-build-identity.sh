@@ -113,6 +113,15 @@ test -f "$PRODUCT_OUT/vendor/etc/init/hw/init.caiman.rc"
 cmp -s "$PRODUCT_OUT/vendor/etc/init/hw/init.virtio.rc" \
   "$PRODUCT_OUT/vendor/etc/init/hw/init.caiman.rc"
 test -f "$PRODUCT_OUT/vendor/etc/fstab.caiman"
+# Stage A identity spoof (patches 0017/0018/0019): the spoof data files must be
+# staged, and init's spoof-area builder must be compiled in. init builds the
+# spoofed property area at /dev/__properties_spoof__ at boot; this stage does
+# not alter what system processes read.
+test -f "$PRODUCT_OUT/system/etc/spoof_props.txt"
+test -f "$PRODUCT_OUT/system/etc/spoof_policy.json"
+# The spoof props must carry the coherent Pixel 9 Pro fingerprint tuple.
+grep -q '^ro.build.fingerprint=google/caiman/caiman:16/BP4A.251205.006/13749016:user/release-keys$' \
+  "$PRODUCT_OUT/system/etc/spoof_props.txt"
 if grep -q 'debug.angle.gl_\(vendor\|renderer\)' "$init_virt"; then
   echo "unsafe global ANGLE identity override remains in $init_virt" >&2
   exit 1

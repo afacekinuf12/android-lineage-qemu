@@ -1,0 +1,78 @@
+diff --git a/configs/spoof/spoof_policy.json b/configs/spoof/spoof_policy.json
+new file mode 100644
+index 0000000..25d71ed
+--- /dev/null
++++ b/configs/spoof/spoof_policy.json
+@@ -0,0 +1,6 @@
++{
++  "_comment": "Stage 2 reads target packages here; spoof values live in spoof_props.txt.",
++  "packages": [
++    "com.example.targetapp"
++  ]
++}
+diff --git a/configs/spoof/spoof_props.txt b/configs/spoof/spoof_props.txt
+new file mode 100644
+index 0000000..0d574c5
+--- /dev/null
++++ b/configs/spoof/spoof_props.txt
+@@ -0,0 +1,35 @@
++# Per-app spoof property overrides (Stage 1 emits data; Stage 2 exposes it only
++# to target apps). Coherent with real Android 16 r4 caiman build BP4A.251205.006.
++ro.product.model=Pixel 9 Pro
++ro.product.system.model=Pixel 9 Pro
++ro.product.vendor.model=Pixel 9 Pro
++ro.product.odm.model=Pixel 9 Pro
++ro.product.product.model=Pixel 9 Pro
++ro.product.system_ext.model=Pixel 9 Pro
++ro.product.system_dlkm.model=Pixel 9 Pro
++ro.product.vendor_dlkm.model=Pixel 9 Pro
++ro.product.odm_dlkm.model=Pixel 9 Pro
++ro.product.system.device=caiman
++ro.product.system.name=caiman
++ro.product.system_dlkm.brand=Google
++ro.build.id=BP4A.251205.006
++ro.build.version.incremental=13749016
++ro.build.version.security_patch=2025-12-05
++ro.build.flavor=caiman-user
++ro.build.display.id=BP4A.251205.006
++ro.build.description=caiman-user 16 BP4A.251205.006 13749016 release-keys
++ro.build.fingerprint=google/caiman/caiman:16/BP4A.251205.006/13749016:user/release-keys
++ro.system.build.fingerprint=google/caiman/caiman:16/BP4A.251205.006/13749016:user/release-keys
++ro.system.build.id=BP4A.251205.006
++ro.system.build.version.incremental=13749016
++ro.system_ext.build.fingerprint=google/caiman/caiman:16/BP4A.251205.006/13749016:user/release-keys
++ro.system_ext.build.version.incremental=13749016
++ro.vendor.build.fingerprint=google/caiman/caiman:16/BP4A.251205.006/13749016:user/release-keys
++ro.vendor.build.id=BP4A.251205.006
++ro.odm.build.fingerprint=google/caiman/caiman:16/BP4A.251205.006/13749016:user/release-keys
++ro.odm.build.version.incremental=13749016
++ro.product.build.fingerprint=google/caiman/caiman:16/BP4A.251205.006/13749016:user/release-keys
++ro.product.build.id=BP4A.251205.006
++ro.product.build.version.incremental=13749016
++ro.bootimage.build.fingerprint=google/caiman/caiman:16/BP4A.251205.006/13749016:user/release-keys
++ro.boot.verifiedbootstate=green
+diff --git a/device-common.mk b/device-common.mk
+index 892789d..6d83be5 100644
+--- a/device-common.mk
++++ b/device-common.mk
+@@ -77,3 +77,11 @@ PRODUCT_PACKAGES += \
+     fstab.virtio.gsi.sda.vendor_ramdisk \
+     fstab.virtio.gsi.vdc.vendor_ramdisk \
+     fstab.caiman.vendor_ramdisk
++
++# Identity spoof data files. init (Stage A) builds a spoofed property area at
++# /dev/__properties_spoof__ from these; Stage B binds it into target-app
++# namespaces. No effect on system processes.
++
++PRODUCT_COPY_FILES += \
++    $(COMMON_PATH)/configs/spoof/spoof_props.txt:$(TARGET_COPY_OUT_SYSTEM)/etc/spoof_props.txt \
++    $(COMMON_PATH)/configs/spoof/spoof_policy.json:$(TARGET_COPY_OUT_SYSTEM)/etc/spoof_policy.json
+diff --git a/sepolicy/vendor/file_contexts b/sepolicy/vendor/file_contexts
+index 09e96bd..b8808de 100644
+--- a/sepolicy/vendor/file_contexts
++++ b/sepolicy/vendor/file_contexts
+@@ -11,3 +11,4 @@
+ # Executables
+ /vendor/bin/hw/android\.hardware\.composer\.hwc3-service\.drm(|\.[0-9a-z_]+)		u:object_r:hal_graphics_composer_default_exec:s0
+ /vendor/bin/virtgpu_detect								u:object_r:vendor_virtgpu_detect_exec:s0
++

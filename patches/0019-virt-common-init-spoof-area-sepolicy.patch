@@ -1,0 +1,25 @@
+diff --git a/sepolicy/vendor/file_contexts b/sepolicy/vendor/file_contexts
+index 419c4a0..2c2f607 100644
+--- a/sepolicy/vendor/file_contexts
++++ b/sepolicy/vendor/file_contexts
+@@ -7,3 +7,6 @@
+ 
+ # Persist
+ /mnt/vendor/persist(/.*)?		u:object_r:persist_file:s0
++
++# Identity spoof property area (Stage A)
++/dev/__properties_spoof__(/.*)?		u:object_r:properties_device:s0
+diff --git a/sepolicy/vendor/init.te b/sepolicy/vendor/init.te
+index a1eb1de..1b766f3 100644
+--- a/sepolicy/vendor/init.te
++++ b/sepolicy/vendor/init.te
+@@ -14,3 +14,9 @@ allow init firmware_mnt_file:filesystem { mount unmount relabelfrom };
+ # Persist
+ allow init persist_file:dir mounton;
+ allow init persist_file:filesystem { mount unmount relabelfrom relabelto };
++
++# Stage A: init builds the identity spoof property area at
++# /dev/__properties_spoof__ (a copy of /dev/__properties__ with a few build_prop
++# values rewritten). Reuse the properties_device label so no new type is needed;
++# init already holds properties_device:file create_file_perms + dir relabelto.
++allow init properties_device:dir { create add_name remove_name write search };

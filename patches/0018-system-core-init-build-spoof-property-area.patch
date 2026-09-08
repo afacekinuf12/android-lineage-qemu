@@ -1,0 +1,275 @@
+diff --git a/init/Android.bp b/init/Android.bp
+index 3e2fb07..76edaaa 100644
+--- a/init/Android.bp
++++ b/init/Android.bp
+@@ -82,6 +82,7 @@ init_device_sources = [
+     "persistent_properties.cpp",
+     "persistent_properties.proto",
+     "property_service.cpp",
++    "spoof_prop_area.cpp",
+     "property_service.proto",
+     "reboot.cpp",
+     "reboot_utils.cpp",
+diff --git a/init/property_service.cpp b/init/property_service.cpp
+index 3c78e76..352aade 100644
+--- a/init/property_service.cpp
++++ b/init/property_service.cpp
+@@ -68,6 +68,7 @@
+ #include "init.h"
+ #include "persistent_properties.h"
+ #include "property_type.h"
++#include "spoof_prop_area.h"
+ #include "proto_utils.h"
+ #include "second_stage_resources.h"
+ #include "selinux.h"
+@@ -1402,6 +1403,9 @@ void PropertyInit() {
+ 
+     PropertyLoadBootDefaults();
+     PropertyLoadDerivedDefaults();
++
++    // Stage A: build the per-app identity spoof property area (best-effort).
++    BuildSpoofedPropertyArea();
+ }
+ 
+ static void HandleInitSocket() {
+diff --git a/init/spoof_prop_area.cpp b/init/spoof_prop_area.cpp
+new file mode 100644
+index 0000000..801adc6
+--- /dev/null
++++ b/init/spoof_prop_area.cpp
+@@ -0,0 +1,212 @@
++/*
++ * SPDX-License-Identifier: Apache-2.0
++ *
++ * spoof_prop_area (Stage A) - build a COMPLETE spoofed copy of the system
++ * property area at /dev/__properties_spoof__ from the real /dev/__properties__,
++ * applying the override list in /system/etc/spoof_props.txt via in-place byte
++ * rewrite of each prop_info record. Stage B binds this copy into target-app
++ * mount namespaces so walk-B (direct /dev/__properties__ file reads) also see
++ * the spoofed values; system processes keep reading the real area untouched.
++ *
++ * Runs inside init (PID 1), which is exempt from the SELinux neverallows that
++ * block ordinary domains: it may read all property_type context files, create
++ * files under /dev, and needs no mounts here (this only copies+patches files;
++ * the namespace bind is Stage B in zygote).
++ *
++ * Byte layout (validated offline against a real build_prop context file):
++ *   prop_info (sizeof == 96):
++ *     off 0 : atomic uint32 serial   (SERIAL_VALUE_LEN = serial >> 24)
++ *     off 4 : char value[92]         (PROP_VALUE_MAX, NUL-terminated)
++ *     off 96: char name[]            (NUL-terminated, variable)
++ *   A property NAME's prop_info is located by scanning for "\0<name>\0" and
++ *   backing up 96 bytes; validated by SERIAL_VALUE_LEN == strlen(value) and a
++ *   NUL terminator at value[len]. In-place rewrite preserves record size (the
++ *   trie offsets are untouched), only value bytes + serial length are changed.
++ *
++ * Every step is non-fatal: any failure logs a warning and returns; the real
++ * property area and boot are never affected. Fabricates identity strings only;
++ * does not touch AVB/attestation.
++ */
++
++#include "spoof_prop_area.h"
++
++#include <dirent.h>
++#include <fcntl.h>
++#include <sys/stat.h>
++#include <sys/types.h>
++#include <unistd.h>
++
++#include <cstdint>
++#include <cstring>
++#include <map>
++#include <memory>
++#include <string>
++#include <vector>
++
++#include <android-base/file.h>
++#include <android-base/logging.h>
++#include <android-base/strings.h>
++
++namespace android {
++namespace init {
++
++namespace {
++
++constexpr const char* kRealDir = "/dev/__properties__";
++constexpr const char* kSpoofDir = "/dev/__properties_spoof__";
++constexpr const char* kPropsFile = "/system/etc/spoof_props.txt";
++constexpr size_t kInfoHdr = 96;       // serial(4) + value[92]
++constexpr size_t kPropValueMax = 92;  // PROP_VALUE_MAX
++
++std::map<std::string, std::string> LoadOverrides() {
++    std::map<std::string, std::string> m;
++    std::string content;
++    if (!android::base::ReadFileToString(kPropsFile, &content)) {
++        LOG(WARNING) << "spoof: cannot read " << kPropsFile;
++        return m;
++    }
++    for (const auto& line : android::base::Split(content, "\n")) {
++        if (line.empty() || line[0] == '#') continue;
++        auto eq = line.find('=');
++        if (eq == std::string::npos) continue;
++        std::string key = line.substr(0, eq);
++        std::string val = line.substr(eq + 1);
++        if (!key.empty() && val.size() < kPropValueMax) m[key] = val;
++    }
++    return m;
++}
++
++// Rewrite every override key found in `buf` (one property-context file image).
++// Returns the number of properties patched.
++size_t PatchBuffer(std::vector<char>* buf, const std::map<std::string, std::string>& ov) {
++    size_t patched = 0;
++    char* base = buf->data();
++    const size_t size = buf->size();
++
++    for (const auto& [key, val] : ov) {
++        // needle = "\0<name>\0"
++        std::string needle;
++        needle.push_back('\0');
++        needle.append(key);
++        needle.push_back('\0');
++
++        size_t from = 0;
++        while (from + needle.size() <= size) {
++            void* hit = memmem(base + from, size - from, needle.data(), needle.size());
++            if (hit == nullptr) break;
++            size_t name_off = static_cast<char*>(hit) - base + 1;  // first char of name
++            from = name_off;                                       // advance for next search
++
++            if (name_off < kInfoHdr) continue;
++            size_t hdr = name_off - kInfoHdr;
++
++            uint32_t serial;
++            memcpy(&serial, base + hdr, sizeof(serial));
++            uint32_t old_len = serial >> 24;
++            if (old_len >= kPropValueMax) continue;                // long property, skip
++            // Validate: value[old_len] must be NUL and stored len must match.
++            if (base[hdr + 4 + old_len] != '\0') continue;
++            if (strnlen(base + hdr + 4, kPropValueMax) != old_len) continue;
++
++            // In-place rewrite: value + NUL, zero the rest of the field, fix serial length.
++            size_t new_len = val.size();
++            memset(base + hdr + 4, 0, kPropValueMax);
++            memcpy(base + hdr + 4, val.data(), new_len);
++            uint32_t new_serial = (static_cast<uint32_t>(new_len) << 24) | (serial & 0x00FFFFFFu);
++            memcpy(base + hdr, &new_serial, sizeof(new_serial));
++            patched++;
++            break;  // each key appears once per context file
++        }
++    }
++    return patched;
++}
++
++bool CopyAndPatchFile(const std::string& src, const std::string& dst,
++                      const std::map<std::string, std::string>& ov) {
++    std::string content;
++    if (!android::base::ReadFileToString(src, &content)) {
++        LOG(WARNING) << "spoof: read failed " << src;
++        return false;
++    }
++    std::vector<char> buf(content.begin(), content.end());
++    PatchBuffer(&buf, ov);
++    // Write with 0444 (same read-only shape as the real area files).
++    if (!android::base::WriteStringToFile(std::string(buf.begin(), buf.end()), dst, 0444, getuid(),
++                                          getgid())) {
++        LOG(WARNING) << "spoof: write failed " << dst;
++        return false;
++    }
++    return true;
++}
++
++bool CopyTree(const std::string& src, const std::string& dst,
++              const std::map<std::string, std::string>& ov) {
++    struct stat st;
++    if (stat(src.c_str(), &st) != 0) return false;
++    if (S_ISDIR(st.st_mode)) {
++        if (mkdir(dst.c_str(), 0711) != 0 && errno != EEXIST) {
++            LOG(WARNING) << "spoof: mkdir failed " << dst;
++            return false;
++        }
++        std::unique_ptr<DIR, decltype(&closedir)> d(opendir(src.c_str()), closedir);
++        if (!d) return false;
++        bool ok = true;
++        struct dirent* e;
++        while ((e = readdir(d.get())) != nullptr) {
++            if (!strcmp(e->d_name, ".") || !strcmp(e->d_name, "..")) continue;
++            ok &= CopyTree(src + "/" + e->d_name, dst + "/" + e->d_name, ov);
++        }
++        return ok;
++    }
++    // Regular file: a property-context image or property_info. Patch either way
++    // (PatchBuffer is a no-op if no override key is present, e.g. property_info).
++    return CopyAndPatchFile(src, dst, ov);
++}
++
++}  // namespace
++
++// Read one property value back out of a freshly written spoof context file, to
++// prove the rewrite landed (visible in logcat as the Stage-A success signal).
++static void VerifyReadback(const std::map<std::string, std::string>& ov) {
++    const char* probe = "ro.product.model";
++    auto it = ov.find(probe);
++    if (it == ov.end()) return;
++    // scan every spoof file for the probe and report the stored value
++    std::unique_ptr<DIR, decltype(&closedir)> d(opendir(kSpoofDir), closedir);
++    if (!d) return;
++    struct dirent* e;
++    while ((e = readdir(d.get())) != nullptr) {
++        if (e->d_name[0] == '.') continue;
++        std::string content;
++        if (!android::base::ReadFileToString(std::string(kSpoofDir) + "/" + e->d_name, &content))
++            continue;
++        std::string needle;
++        needle.push_back('\0'); needle.append(probe); needle.push_back('\0');
++        auto pos = content.find(needle);
++        if (pos == std::string::npos || pos < kInfoHdr) continue;
++        size_t hdr = pos + 1 - kInfoHdr;
++        uint32_t serial; memcpy(&serial, content.data() + hdr, 4);
++        uint32_t len = serial >> 24;
++        std::string val(content.data() + hdr + 4, len);
++        LOG(INFO) << "spoof: readback " << probe << "=" << val << " (expect " << it->second << ")";
++        return;
++    }
++}
++
++// Best-effort; never throws, never aborts boot.
++void BuildSpoofedPropertyArea() {
++    auto ov = LoadOverrides();
++    if (ov.empty()) {
++        LOG(INFO) << "spoof: no overrides, skipping spoof area";
++        return;
++    }
++    if (CopyTree(kRealDir, kSpoofDir, ov)) {
++        LOG(INFO) << "spoof: built " << kSpoofDir << " with " << ov.size() << " overrides";
++        VerifyReadback(ov);
++    } else {
++        LOG(WARNING) << "spoof: failed to build " << kSpoofDir << " (boot unaffected)";
++    }
++}
++
++}  // namespace init
++}  // namespace android
+diff --git a/init/spoof_prop_area.h b/init/spoof_prop_area.h
+new file mode 100644
+index 0000000..bf1e556
+--- /dev/null
++++ b/init/spoof_prop_area.h
+@@ -0,0 +1,17 @@
++/*
++ * SPDX-License-Identifier: Apache-2.0
++ */
++#pragma once
++
++namespace android {
++namespace init {
++
++// Build a complete spoofed copy of the system property area at
++// /dev/__properties_spoof__ from /dev/__properties__, applying the overrides in
++// /system/etc/spoof_props.txt. Best-effort and non-fatal: any failure logs and
++// returns without affecting the real property area or boot. Call once from
++// PropertyInit(), after PropertyLoadBootDefaults().
++void BuildSpoofedPropertyArea();
++
++}  // namespace init
++}  // namespace android

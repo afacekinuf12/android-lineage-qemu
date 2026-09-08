@@ -138,7 +138,11 @@ git -C device/virt/virt-common checkout -- \
   configs/kernel/virt-common.config \
   configs/misc/grubenv.txt \
   libraries/libinit/libinit_virt.cpp \
+  sepolicy/vendor/init.te \
+  sepolicy/vendor/file_contexts \
   virt-common.mk
+git -C system/core checkout -- init/Android.bp init/property_service.cpp
+rm -f system/core/init/spoof_prop_area.cpp system/core/init/spoof_prop_area.h
 git -C device/virt/virtio_arm64 checkout -- vm_templates/utm/config.plist
 git -C device/virt/virtio_arm64only checkout -- lineage_virtio_arm64only.mk
 # Restore files touched by older patch series so cached runners converge on the
@@ -147,7 +151,14 @@ git -C device/virt/virtio-common checkout -- \
   BoardConfigCommon.mk \
   configs/fstab/Android.bp \
   device-common.mk \
+  sepolicy/vendor/file_contexts \
   services/virtgpu_detect/virtgpu_detect.c
+# Patches add new (untracked) files; remove them so apply.sh re-applies from a
+# clean state on incremental self-hosted runners (git checkout won't delete
+# untracked paths, which would otherwise leave a patch half-applied).
+rm -rf device/virt/virtio-common/services/spoofprop_gen \
+       device/virt/virtio-common/configs/spoof \
+       device/virt/virtio-common/sepolicy/vendor/spoofprop_gen.te
 git -C external/mesa checkout -- \
   android/mesa3d_cross.mk \
   src/gallium/drivers/llvmpipe/lp_screen.c \
