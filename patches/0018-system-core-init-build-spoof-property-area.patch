@@ -34,10 +34,10 @@ index 3c78e76..352aade 100644
  static void HandleInitSocket() {
 diff --git a/init/spoof_prop_area.cpp b/init/spoof_prop_area.cpp
 new file mode 100644
-index 0000000..801adc6
+index 0000000..5f1ec7f
 --- /dev/null
 +++ b/init/spoof_prop_area.cpp
-@@ -0,0 +1,212 @@
+@@ -0,0 +1,251 @@
 +/*
 + * SPDX-License-Identifier: Apache-2.0
 + *
@@ -52,6 +52,13 @@ index 0000000..801adc6
 + * block ordinary domains: it may read all property_type context files, create
 + * files under /dev, and needs no mounts here (this only copies+patches files;
 + * the namespace bind is Stage B in zygote).
++ *
++ * SELinux labels: each spoof file is created with setfscreatecon() set to the
++ * *source* file's label (build_prop, fingerprint_prop, property_info,
++ * properties_serial, ...), so the copy is byte- AND label-identical to the real
++ * area. This is required for Stage B: after the bind mount, target apps read the
++ * per-context files under their normal domain rules (get_prop(domain, type)),
++ * which only works if the file carries the matching property type label.
 + *
 + * Byte layout (validated offline against a real build_prop context file):
 + *   prop_info (sizeof == 96):
@@ -86,6 +93,7 @@ index 0000000..801adc6
 +#include <android-base/file.h>
 +#include <android-base/logging.h>
 +#include <android-base/strings.h>
++#include <selinux/selinux.h>
 +
 +namespace android {
 +namespace init {
@@ -97,6 +105,31 @@ index 0000000..801adc6
 +constexpr const char* kPropsFile = "/system/etc/spoof_props.txt";
 +constexpr size_t kInfoHdr = 96;       // serial(4) + value[92]
 +constexpr size_t kPropValueMax = 92;  // PROP_VALUE_MAX
++
++// RAII for the per-thread SELinux fscreate context. Set it to the source file's
++// label before creating the spoof copy so the new file is born with the exact
++// same type (build_prop, property_info, ...). Non-fatal if labeling is
++// unavailable; the copy still lands, just without a mirrored label.
++class ScopedFsCreate {
++  public:
++    explicit ScopedFsCreate(const std::string& src_path) {
++        char* con = nullptr;
++        if (lgetfilecon(src_path.c_str(), &con) >= 0 && con != nullptr) {
++            if (setfscreatecon(con) == 0) {
++                set_ = true;
++            }
++            freecon(con);
++        }
++    }
++    ~ScopedFsCreate() {
++        if (set_) setfscreatecon(nullptr);
++    }
++    ScopedFsCreate(const ScopedFsCreate&) = delete;
++    ScopedFsCreate& operator=(const ScopedFsCreate&) = delete;
++
++  private:
++    bool set_ = false;
++};
 +
 +std::map<std::string, std::string> LoadOverrides() {
 +    std::map<std::string, std::string> m;
@@ -170,6 +203,8 @@ index 0000000..801adc6
 +    }
 +    std::vector<char> buf(content.begin(), content.end());
 +    PatchBuffer(&buf, ov);
++    // Mirror the source file's SELinux label onto the copy (born-labeled).
++    ScopedFsCreate fscreate(src);
 +    // Write with 0444 (same read-only shape as the real area files).
 +    if (!android::base::WriteStringToFile(std::string(buf.begin(), buf.end()), dst, 0444, getuid(),
 +                                          getgid())) {
@@ -184,9 +219,13 @@ index 0000000..801adc6
 +    struct stat st;
 +    if (stat(src.c_str(), &st) != 0) return false;
 +    if (S_ISDIR(st.st_mode)) {
-+        if (mkdir(dst.c_str(), 0711) != 0 && errno != EEXIST) {
-+            LOG(WARNING) << "spoof: mkdir failed " << dst;
-+            return false;
++        {
++            // Mirror the source directory label (properties_device) onto the copy.
++            ScopedFsCreate fscreate(src);
++            if (mkdir(dst.c_str(), 0711) != 0 && errno != EEXIST) {
++                LOG(WARNING) << "spoof: mkdir failed " << dst;
++                return false;
++            }
 +        }
 +        std::unique_ptr<DIR, decltype(&closedir)> d(opendir(src.c_str()), closedir);
 +        if (!d) return false;

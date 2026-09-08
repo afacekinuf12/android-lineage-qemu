@@ -143,6 +143,9 @@ git -C device/virt/virt-common checkout -- \
   virt-common.mk
 git -C system/core checkout -- init/Android.bp init/property_service.cpp
 rm -f system/core/init/spoof_prop_area.cpp system/core/init/spoof_prop_area.h
+git -C frameworks/base checkout -- \
+  core/jni/com_android_internal_os_Zygote.cpp \
+  services/core/java/com/android/server/am/ProcessList.java
 git -C device/virt/virtio_arm64 checkout -- vm_templates/utm/config.plist
 git -C device/virt/virtio_arm64only checkout -- lineage_virtio_arm64only.mk
 # Restore files touched by older patch series so cached runners converge on the

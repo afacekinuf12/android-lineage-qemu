@@ -2,3 +2,5 @@
 /bin/
 /android/
 /*.img
+/.srcref/
+/dist/
