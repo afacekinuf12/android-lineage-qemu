@@ -88,6 +88,15 @@ Two changes:
    ns, walk-B (`open`/`mmap` of the per-context files) resolves to the spoof
    inodes too. System processes never enter this ns → real values.
 
+   The upstream `mount_sysprop_overrides` block also calls `MountInitOverride()`,
+   which mounts a tmpfs over `/system/etc/init` — that needs
+   `allow zygote system_file:dir mounton`, which sepolicy grants **only** on
+   userdebug/eng. Since our gate also fires on **user** builds, that call would
+   fail and abort the target app during specialize (observed: `SIGSEGV`/`fail_fn`
+   before the app runs). Identity spoofing does not need the init override, so
+   `MountInitOverride()` is **not** called (its definition is retained,
+   `[[maybe_unused]]`). Only the property-area bind runs.
+
 2. **`ProcessList.java` — gate on the on-device policy, any build type.**
    Upstream only enables the override for userdebug/eng builds via a DeviceConfig
    package list. We add `isSpoofTargetPackage()`, which parses

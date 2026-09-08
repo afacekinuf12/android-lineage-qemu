@@ -1,5 +1,5 @@
 diff --git a/core/jni/com_android_internal_os_Zygote.cpp b/core/jni/com_android_internal_os_Zygote.cpp
-index a92c6c871..be2841682 100644
+index a92c6c871..810ed743b 100644
 --- a/core/jni/com_android_internal_os_Zygote.cpp
 +++ b/core/jni/com_android_internal_os_Zygote.cpp
 @@ -1816,14 +1816,29 @@ static void ReloadBuildJavaConstants(JNIEnv* env) {
@@ -36,6 +36,31 @@ index a92c6c871..be2841682 100644
    BindMount(source, target, fail_fn);
    // Reload the system properties file, to ensure new values are read into memory
    __system_properties_zygote_reload();
+@@ -1831,7 +1846,7 @@ static void BindMountSyspropOverride(fail_fn_t fail_fn, JNIEnv* env) {
+   ReloadBuildJavaConstants(env);
+ }
+ 
+-static void MountInitOverride(fail_fn_t fail_fn, JNIEnv* env) {
++[[maybe_unused]] static void MountInitOverride(fail_fn_t fail_fn, JNIEnv* env) {
+     const char* init_etc_dir = "/system/etc/init";
+ 
+     if (TEMP_FAILURE_RETRY(mount("tmpfs", init_etc_dir, "tmpfs", MS_NOSUID | MS_NODEV | MS_NOEXEC,
+@@ -1961,7 +1976,14 @@ static void SpecializeCommon(JNIEnv* env, uid_t uid, gid_t gid, jintArray gids,
+ 
+     if (mount_sysprop_overrides) {
+         BindMountSyspropOverride(fail_fn, env);
+-        MountInitOverride(fail_fn, env);
++        // NOTE: upstream also calls MountInitOverride() here, which mounts a tmpfs
++        // over /system/etc/init. That needs `allow zygote system_file:dir mounton`,
++        // which sepolicy only grants on userdebug/eng. Our identity-spoof gate runs
++        // on user builds too (via spoof_policy.json), where that permission is
++        // absent -> the mount fails -> fail_fn -> the app process aborts during
++        // specialize. Identity spoofing does not need the init override, so we skip
++        // it. (Re-add behind a userdebug_or_eng guard if the appcompat init-override
++        // feature is ever needed.)
+     }
+ 
+     // If this zygote isn't root, it won't be able to create a process group,
 diff --git a/services/core/java/com/android/server/am/ProcessList.java b/services/core/java/com/android/server/am/ProcessList.java
 index a421ee65f..7002e9bb2 100644
 --- a/services/core/java/com/android/server/am/ProcessList.java
