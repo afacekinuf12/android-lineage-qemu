@@ -39,6 +39,8 @@ apply_patch device/virt/virtio-common 0016-virtio-common-report-caiman-hardware.
 apply_patch device/virt/virtio-common 0017-virtio-common-perapp-identity-spoof.patch
 apply_patch system/core 0018-system-core-init-build-spoof-property-area.patch
 apply_patch frameworks/base 0020-frameworks-base-zygote-bind-spoof-area.patch
+apply_patch frameworks/base 0022-uiautomator-include-test-base-dependency.patch
+apply_patch hardware/interfaces 0021-sensors-limit-virtio-to-bridged-motion.patch
 apply_patch device/virt/virtio_arm64 0002-virtio-arm64-expand-utm-hardware.patch
 apply_patch device/virt/virtio_arm64 0005-virtio-arm64-use-compatible-utm-display.patch
 apply_patch device/virt/virtio_arm64only 0007-virtio-arm64-consistent-product-identity.patch

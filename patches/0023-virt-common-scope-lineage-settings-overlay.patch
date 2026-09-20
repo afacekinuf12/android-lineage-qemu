@@ -1,0 +1,16 @@
+diff --git a/virt-common.mk b/virt-common.mk
+--- a/virt-common.mk
++++ b/virt-common.mk
+@@ -173,6 +173,11 @@
+ PRODUCT_PACKAGES += \
+-    AodDefaultOnOverlay \
++    AodDefaultOnOverlay
++
++# Keep the optional distribution overlay with its owning product.
++ifneq ($(LINEAGE_BUILD),)
++PRODUCT_PACKAGES += \
+     LowPerformanceSettingsProviderOverlay
++endif
+ 
+ # Page size
+ PRODUCT_CHECK_PREBUILT_MAX_PAGE_SIZE := true

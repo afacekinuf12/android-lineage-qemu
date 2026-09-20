@@ -1,0 +1,19 @@
+diff --git a/Android.bp b/Android.bp
+--- a/Android.bp
++++ b/Android.bp
+@@ -51,6 +51,7 @@
+     name: "sgdisk",
+     defaults: ["gptfdisk_default_flags"],
+     host_supported: true,
++    recovery_available: true,
+ 
+     srcs: [
+         "sgdisk.cc",
+@@ -86,6 +87,7 @@
+     name: "libgptf",
+     defaults: ["gptfdisk_default_flags"],
+     host_supported: true,
++    recovery_available: true,
+ 
+     export_include_dirs: ["."],
+     srcs: lib_common_srcs + ["diskio-unix.cc"],

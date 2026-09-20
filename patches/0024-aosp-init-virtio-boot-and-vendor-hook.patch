@@ -1,0 +1,28 @@
+diff --git a/init/devices.cpp b/init/devices.cpp
+--- a/init/devices.cpp
++++ b/init/devices.cpp
+@@ -222,7 +222,8 @@
+         info.str = "";
+     }
+ 
+-    info.is_boot_device = boot_devices_.find(info.str) != boot_devices_.end();
++    info.is_boot_device = boot_devices_.find(info.str) != boot_devices_.end() ||
++                          boot_devices_.find("any") != boot_devices_.end();
+ 
+     return info;
+ }
+diff --git a/init/Android.bp b/init/Android.bp
+--- a/init/Android.bp
++++ b/init/Android.bp
+@@ -237,7 +237,10 @@
+     ],
+     whole_static_libs: [
+         "libcap",
+-    ],
++    ] + select(soong_config_variable("libinit", "vendor_init_lib"), {
++        any @ flag_val: [flag_val],
++        default: [],
++    }),
+     header_libs: ["bootimg_headers"],
+     proto: {
+         type: "lite",

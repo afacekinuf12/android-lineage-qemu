@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Add to a NEW Android 16 r4 AOSP tree, not to an existing Lineage manifest.
+     Device support retains upstream provenance; Android platform repositories
+     (framework, Settings, providers, SystemUI and recovery) remain AOSP.
+     Supply a validated prebuilt kernel/modules separately; see AOSP_PRODUCT.md. -->
+<manifest>
+  <remote name="virtio_support" fetch="https://github.com/LineageOS" />
+  <project name="android_device_virt_virtio_arm64only" path="device/virt/virtio_arm64only" remote="virtio_support" revision="refs/heads/lineage-23.2" />
+  <project name="android_device_virt_virtio_arm64" path="device/virt/virtio_arm64" remote="virtio_support" revision="refs/heads/lineage-23.2" />
+  <project name="android_device_virt_virtio-common" path="device/virt/virtio-common" remote="virtio_support" revision="refs/heads/lineage-23.2" />
+  <project name="android_device_virt_virt-common" path="device/virt/virt-common" remote="virtio_support" revision="refs/heads/lineage-23.2" />
+  <project name="android_device_mainline_common" path="device/mainline/common" remote="virtio_support" revision="refs/heads/lineage-23.2" />
+  <project name="android_hardware_mainline_common" path="hardware/mainline/common" remote="virtio_support" revision="refs/heads/lineage-23.2" />
+  <project name="android_external_mesa" path="external/mesa" remote="virtio_support" revision="refs/heads/lineage-23.2" />
+  <project name="android_external_drm_hwcomposer-upstream" path="external/drm_hwcomposer-upstream" remote="virtio_support" revision="refs/heads/lineage-23.2" />
+  <project name="android_external_minigbm-upstream" path="external/minigbm-upstream" remote="virtio_support" revision="refs/heads/lineage-23.2" />
+  <project name="android_external_linux-firmware-mainline" path="external/linux-firmware-mainline" remote="virtio_support" revision="refs/heads/lineage-23.2" />
+  <project name="android_prebuilts_bootmgr" path="prebuilts/bootmgr" remote="virtio_support" revision="refs/heads/lineage-23.2" />
+</manifest>

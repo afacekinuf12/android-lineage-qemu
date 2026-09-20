@@ -6,6 +6,17 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
+# Only the shell entry point is needed for the UI Automator regression.
+ui_root="$WORK/uiautomator-wrapper"
+ui_file="cmds/uiautomator/cmds/uiautomator/uiautomator.sh"
+mkdir -p "$ui_root/$(dirname "$ui_file")"
+curl -fLsS --retry 2 --max-time 60 \
+  "https://raw.githubusercontent.com/LineageOS/android_frameworks_base/lineage-23.2/$ui_file" \
+  -o "$ui_root/$ui_file"
+git -C "$ui_root" init -q
+git -C "$ui_root" apply "$ROOT/patches/0022-uiautomator-include-test-base-dependency.patch"
+python3 "$ROOT/tests/check-uiautomator-wrapper.py" "$ui_root/$ui_file"
+
 clone_and_check_series() {
   local repository=$1
   shift
@@ -39,7 +50,8 @@ clone_and_check_series \
   0001-virt-common-enable-compat-hardware.patch \
   0006-virt-common-declare-bridged-gps.patch \
   0008-virt-common-align-declared-hardware.patch \
-  0009-virt-common-pixel-platform-identity.patch
+  0009-virt-common-pixel-platform-identity.patch \
+  0023-virt-common-scope-lineage-settings-overlay.patch
 clone_and_check_series \
   android_device_virt_virtio_arm64 \
   0002-virtio-arm64-expand-utm-hardware.patch \
@@ -47,6 +59,9 @@ clone_and_check_series \
 clone_and_check_series \
   android_device_virt_virtio_arm64only \
   0007-virtio-arm64-consistent-product-identity.patch
+clone_and_check_series \
+  android_hardware_interfaces \
+  0021-sensors-limit-virtio-to-bridged-motion.patch
 clone_and_check_series android_device_virt_virtio-common
 clone_and_check_series \
   android_external_mesa \
@@ -106,5 +121,15 @@ grep -q '"date", "-u", "-d", f"@{raw_date}"' \
   "$WORK/android_build_soong/scripts/gen_build_prop.py"
 grep -q 'DATE_FROM_FILE := date -u -d @' \
   "$WORK/android_build/core/main.mk"
+
+python3 "$ROOT/tests/check-motion-registration.py" \
+  "$WORK/android_hardware_interfaces"
+if grep -q 'BuildFingerprint=' \
+  "$WORK/android_device_virt_virtio_arm64only/lineage_virtio_arm64only.mk"; then
+  echo "Product must use the generated build fingerprint" >&2
+  exit 1
+fi
+grep -q 'device_virt_virt_common,motion_sensors_only,true' \
+  "$WORK/android_device_virt_virt-common/virt-common.mk"
 
 echo "All LineageOS patches apply cleanly."

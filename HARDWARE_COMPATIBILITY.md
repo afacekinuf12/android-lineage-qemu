@@ -10,7 +10,7 @@ hardware claims aligned with capabilities that can actually be supplied.
 | CPU and memory | Apple Silicon HVF; 4 vCPU/4 GiB default or 8 vCPU compatibility profile with guest memory capped to a safe share of host RAM (16 GiB aspirational ceiling) | High for generic ARM64 |
 | Display | VirtIO GPU; optional 1280 x 2856 at 495 DPI logical profile; the default ANGLE/Pastel path preserves its backend/vendor markers while reporting `Mali-G715` as the Vulkan device name | Functional; public GPU model aligned, but no LTPO panel or phone GPU implementation |
 | Wi-Fi APIs | VirtWifi backed by VirtIO Ethernet | Network-compatible, no 802.11 radio |
-| Motion sensors | Cuttlefish Sensors HAL plus host injection | High when bridge is active |
+| Motion sensors | AIDL example HAL via Cuttlefish packaging; VirtIO-only accel/gyro/magnetometer registration plus host injection | Virtual/test data; event fidelity still requires runtime verification |
 | Location | GPS test provider plus host injection | App-level location only |
 | Camera | Android external camera provider plus UVC/V4L2 | High with external UVC camera |
 | Audio | Generic Android audio HAL and AC97 | Functional, not handset DSP/audio routing |
@@ -28,6 +28,9 @@ with `tools/personalize-utm.py` before import and
 
 - Public product identity presents a Google Pixel 9 Pro (`caiman`); the
   build-only target and device-tree name remain `virtio_arm64only`.
+- New builds use the generated LineageOS fingerprint and actual build metadata,
+  not a fixed Google OTA fingerprint. See [build and sensor contract](BUILD_SENSOR_CONTRACT.md)
+  for the source changes, validation and separate legacy runtime-override scope.
 - The UTM compatibility profile supplies space-free `Google` / `caiman`
   SMBIOS values so LineageOS libinit does not replace runtime product
   properties with QEMU defaults.

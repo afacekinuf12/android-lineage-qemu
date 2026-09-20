@@ -2,6 +2,17 @@
 
 set -eo pipefail
 
+case "${BUILD_FLAVOR:-lineage}" in
+  aosp)
+    exec bash "$(dirname "$0")/build-aosp.sh" "$@"
+    ;;
+  lineage) ;;
+  *)
+    echo "BUILD_FLAVOR must be aosp or lineage" >&2
+    exit 2
+    ;;
+esac
+
 export DEBIAN_FRONTEND=noninteractive
 BUILD_TARGET=${BUILD_TARGET:-all}
 BUILD_JOBS=${BUILD_JOBS:-25}
@@ -144,8 +155,12 @@ git -C device/virt/virt-common checkout -- \
 git -C system/core checkout -- init/Android.bp init/property_service.cpp
 rm -f system/core/init/spoof_prop_area.cpp system/core/init/spoof_prop_area.h
 git -C frameworks/base checkout -- \
+  cmds/uiautomator/cmds/uiautomator/uiautomator.sh \
   core/jni/com_android_internal_os_Zygote.cpp \
   services/core/java/com/android/server/am/ProcessList.java
+git -C hardware/interfaces checkout -- \
+  sensors/aidl/default/Android.bp \
+  sensors/aidl/default/include/sensors-impl/Sensors.h
 git -C device/virt/virtio_arm64 checkout -- vm_templates/utm/config.plist
 git -C device/virt/virtio_arm64only checkout -- lineage_virtio_arm64only.mk
 # Restore files touched by older patch series so cached runners converge on the
@@ -175,6 +190,17 @@ git -C external/swiftshader checkout -- src/Vulkan/VkPhysicalDevice.cpp
 git -C build/soong checkout -- scripts/gen_build_prop.py
 git -C build/make checkout -- core/main.mk
 ../../patches/apply.sh "$(pwd)"
+# Remove only obsolete generated sensor declarations from reused vendor staging.
+# HAL registration and permission XML now share the motion-only profile.
+for target in virtio_arm64only virtio_x86_64; do
+  case "$BUILD_TARGET:$target" in
+    all:*|arm64only:virtio_arm64only|x86_64:virtio_x86_64) ;;
+    *) continue ;;
+  esac
+  for sensor in ambient_temperature barometer hinge_angle light proximity relative_humidity; do
+    rm -f "out/target/product/$target/vendor/etc/permissions/android.hardware.sensor.$sensor.xml"
+  done
+done
 # Force the reverted graphics selector through Soong and the product staging
 # tree even when a self-hosted runner still has outputs from the Mesa-swrast
 # experiment. The paths are deliberately limited to this single module.
@@ -195,6 +221,8 @@ if [[ "$BUILD_TARGET" == "all" || "$BUILD_TARGET" == "x86_64" ]]; then
 
   breakfast virtio_x86_64 user
   m -j"$BUILD_JOBS" vm-utm-zip otapackage
+  python3 ../../scripts/verify-product-contract.py out/target/product/virtio_x86_64 \
+    --target lineage_virtio_x86_64
   mv out/target/product/virtio_x86_64/boot.img ../../boot_x86_64.img
   mv out/target/product/virtio_x86_64/recovery.img ../../recovery_x86_64.img
 fi

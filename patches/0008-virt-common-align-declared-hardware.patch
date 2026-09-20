@@ -2,22 +2,25 @@ diff --git a/virt-common.mk b/virt-common.mk
 index b62aa4d..08fd693 100644
 --- a/virt-common.mk
 +++ b/virt-common.mk
-@@ -20,2 +20,3 @@
+@@ -20,2 +20,5 @@
  TARGET_MESA_ENABLE_SOFTWARE_RENDERER := true
 +LOCAL_SENSOR_FILE_OVERRIDES := true
++# Match the AIDL HAL registration set to the motion-only host bridge.
++$(call soong_config_set_bool,device_virt_virt_common,motion_sensors_only,true)
  TARGET_SENSORS_HAL := cuttlefish
-@@ -179,5 +180,9 @@
+@@ -179,5 +182,10 @@
      frameworks/native/data/etc/android.hardware.touchscreen.multitouch.jazzhand.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.touchscreen.multitouch.jazzhand.xml
 -
 +
 +PRODUCT_COPY_FILES += \
++    frameworks/native/data/etc/android.hardware.sensor.accelerometer.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.sensor.accelerometer.xml \
 +    frameworks/native/data/etc/android.hardware.sensor.compass.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.sensor.compass.xml \
 +    frameworks/native/data/etc/android.hardware.sensor.gyroscope.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.sensor.gyroscope.xml
 +
  PRODUCT_PACKAGES += \
      android.hardware.bluetooth.prebuilt.xml \
      android.hardware.bluetooth_le.prebuilt.xml \
-@@ -194,7 +199,6 @@
+@@ -194,7 +202,6 @@
  # nothing
  else
  PRODUCT_COPY_FILES += \

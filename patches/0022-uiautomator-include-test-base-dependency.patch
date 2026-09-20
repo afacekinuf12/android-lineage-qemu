@@ -1,0 +1,15 @@
+diff --git a/cmds/uiautomator/cmds/uiautomator/uiautomator.sh b/cmds/uiautomator/cmds/uiautomator/uiautomator.sh
+--- a/cmds/uiautomator/cmds/uiautomator/uiautomator.sh
++++ b/cmds/uiautomator/cmds/uiautomator/uiautomator.sh
+@@ -58,7 +58,10 @@
+   shift
+ fi
+ 
+-CLASSPATH=/system/framework/android.test.runner.jar:${base}/framework/uiautomator.jar
++# The legacy runner references classes split into the base/mock test libraries.
++# app_process does not resolve the uses-library dependencies of an APK.
++CLASSPATH=${base}/framework/android.test.base.jar:${base}/framework/android.test.mock.jar
++CLASSPATH=${CLASSPATH}:${base}/framework/android.test.runner.jar:${base}/framework/uiautomator.jar
+ 
+ # eventually args will be what get passed down to Java code
+ args=

@@ -10,6 +10,19 @@
 
 For the latest builds, see [Releases](https://github.com/jqssun/android-lineage-qemu/releases/latest).
 
+The [AOSP product migration](AOSP_PRODUCT.md) adds a separate
+`BUILD_FLAVOR=aosp` path to replace Lineage product/framework dependencies.
+It requires a prepared AOSP VirtIO tree; full image and runtime validation remain pending.
+
+The [build metadata and sensor contract](BUILD_SENSOR_CONTRACT.md) documents the
+StageB follow-up: generated build fingerprints and a motion-only VirtIO sensor
+registration/declaration set. These source changes require a new image build.
+
+The [Risk Detector 1.4 test report](RISKDETECTOR_TEST_REPORT.md) records the isolated
+StageB test, confirmed consistency issues and remaining unknowns. Use
+`bash tools/audit-fingerprint.sh --serial SERIAL` for the read-only runtime audit;
+its results are observations and consistency checks, not phone-authenticity or CTS verdicts.
+
 <img alt="lineage" src="https://github.com/user-attachments/assets/442b5d82-1b32-4702-b3c1-70c6b033ee58" />
 
 ## Usage

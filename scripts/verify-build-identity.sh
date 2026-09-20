@@ -18,6 +18,9 @@ target_files="$PRODUCT_OUT/obj/PACKAGING/target_files_intermediates"
 virtgpu_detect="$PRODUCT_OUT/vendor/bin/virtgpu_detect"
 init_virt="$PRODUCT_OUT/vendor/etc/init/hw/init.virt.rc"
 
+# Compare generated fingerprint tokens with staged metadata, not a phone OTA literal.
+python3 "$(dirname "$0")/verify-product-contract.py" "$PRODUCT_OUT"
+
 require_property() {
   local file=$1
   local pattern=$2
@@ -30,9 +33,8 @@ require_property() {
   fi
 }
 
-require_property "$system_prop" '^ro.build.fingerprint=google/caiman/caiman:' \
-  'ro.build.fingerprint='
-require_property "$system_prop" ':user/release-keys$' 'ro.build.'
+require_property "$system_prop" '^ro.build.type=user$' 'ro.build.type='
+require_property "$system_prop" '^ro.build.tags=release-keys$' 'ro.build.tags='
 require_property "$system_prop" '^ro.product.system.brand=google$' \
   'ro.product.system.'
 require_property "$system_prop" '^ro.product.system.manufacturer=Google$' \
@@ -88,19 +90,8 @@ if grep -Eh '^ro\..*build\.date=' "${build_props[@]}" |
   exit 1
 fi
 
-if grep -Ehi \
-  '^(ro\.product\..*\.(brand|manufacturer|model)|ro\..*build\.fingerprint)=' \
-  "${build_props[@]}" |
-  grep -Eqi '=(.*)(qemu|virtio|generic|ranchu|goldfish|emulator|virtual|openmobile)'; then
-  echo "public build identity still exposes a virtualization identifier" >&2
-  exit 1
-fi
-
-test -f "$permissions/android.hardware.sensor.gyroscope.xml"
-test -f "$permissions/android.hardware.sensor.compass.xml"
-test ! -f "$permissions/android.hardware.sensor.hinge_angle.xml"
-test ! -f "$permissions/android.hardware.sensor.relative_humidity.xml"
-test ! -f "$permissions/android.hardware.sensor.barometer.xml"
+# Sensor XML content is checked across partitions by verify-product-contract.py.
+# The fingerprint intentionally retains the real LineageOS build target.
 test ! -f "$product_permissions/android.hardware.type.pc.xml"
 test -f "$PRODUCT_OUT/vendor/etc/init/hw/init.virtio.rc"
 test -f "$init_virt"

@@ -1,0 +1,11 @@
+diff --git a/ui/build/androidmk_denylist.go b/ui/build/androidmk_denylist.go
+--- a/ui/build/androidmk_denylist.go
++++ b/ui/build/androidmk_denylist.go
+@@ -61,6 +61,7 @@
+ 
+ var androidmk_allowlist []string = []string{
+ 	"bootable/deprecated-ota/updater/Android.mk",
++	"external/mesa/android/Android.mk",
+ }
+ 
+ func getAllLines(ctx Context, filename string) []string {

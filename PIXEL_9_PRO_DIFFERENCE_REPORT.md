@@ -1,5 +1,11 @@
 # Pixel 9 Pro Difference Report
 
+Source update (2026-09-14): [build metadata and sensor contract](BUILD_SENSOR_CONTRACT.md)
+supersedes this report's fixed fingerprint and sensor-absence assumptions.
+StageB v0908 still enumerated nine default HAL sensors plus framework fusion
+sensors. New source limits VirtIO registration to three motion sensors and uses
+the actual generated build fingerprint; a rebuilt image has not yet been tested.
+
 This report compares the ARM64 VM profile with a physical Google Pixel 9 Pro.
 The VM is now configured to present a Pixel 9 Pro (`caiman`) software identity
 across build, SMBIOS and runtime layers for local research. This aligns
@@ -216,11 +222,15 @@ cannot be set from build.prop, but they can be overridden safely in
 
 ## Runtime Capture Procedure
 
-Audit the running VM against the detection matrix at any time:
+Audit runtime build/sensor consistency and record actual graphics/mount observations:
 
 ```shell
-ADB=/opt/homebrew/bin/adb tools/audit-fingerprint.sh --serial 127.0.0.1:5555
+ADB=/opt/homebrew/bin/adb bash tools/audit-fingerprint.sh --serial 127.0.0.1:5555
 ```
+
+The audit now requires an explicit serial and distinguishes unavailable evidence
+from consistency. It no longer scores missing classic emulator markers as
+physical-phone PASS. See [Risk Detector validation](RISKDETECTOR_TEST_REPORT.md).
 
 Collect both devices with the same platform-tools version:
 

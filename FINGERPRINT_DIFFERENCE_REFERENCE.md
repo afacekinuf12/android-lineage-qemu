@@ -1,5 +1,10 @@
 # Fingerprint Difference Reference — VM vs. Physical Pixel 9 Pro
 
+Source update (2026-09-14): the [build metadata and sensor contract](BUILD_SENSOR_CONTRACT.md)
+fixes the hardcoded fingerprint mismatch by using real build output and aligns
+VirtIO's sensor registration with its motion-only feature set. The historical
+observations below are not measurements of a rebuilt image with those changes.
+
 This document catalogs, per fingerprint family, how the LineageOS/QEMU
 `virtio_arm64only` VM differs from a physical Google Pixel 9 Pro (`caiman`).
 It is a **descriptive test-and-analysis reference**, not an anti-detection

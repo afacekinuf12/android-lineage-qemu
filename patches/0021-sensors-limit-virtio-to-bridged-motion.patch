@@ -1,0 +1,64 @@
+diff --git a/sensors/aidl/default/Android.bp b/sensors/aidl/default/Android.bp
+--- a/sensors/aidl/default/Android.bp
++++ b/sensors/aidl/default/Android.bp
+@@ -24,9 +24,27 @@
+     default_applicable_licenses: ["hardware_interfaces_license"],
+ }
+ 
++soong_config_module_type {
++    name: "virt_motion_sensor_defaults",
++    module_type: "cc_defaults",
++    config_namespace: "device_virt_virt_common",
++    bool_variables: ["motion_sensors_only"],
++    properties: ["cflags"],
++}
++
++virt_motion_sensor_defaults {
++    name: "virt_motion_sensor_config",
++    soong_config_variables: {
++        motion_sensors_only: {
++            cflags: ["-DVIRTIO_MOTION_SENSORS_ONLY"],
++        },
++    },
++}
++
+ cc_library_static {
+     name: "libsensorsexampleimpl",
+     vendor: true,
++    defaults: ["virt_motion_sensor_config"],
+     shared_libs: [
+         "libbase",
+         "libfmq",
+@@ -49,6 +67,7 @@
+ 
+ cc_binary {
+     name: "android.hardware.sensors-service.example",
++    defaults: ["virt_motion_sensor_config"],
+     relative_install_path: "hw",
+     installable: false, // install APEX below
+ 
+diff --git a/sensors/aidl/default/include/sensors-impl/Sensors.h b/sensors/aidl/default/include/sensors-impl/Sensors.h
+--- a/sensors/aidl/default/include/sensors-impl/Sensors.h
++++ b/sensors/aidl/default/include/sensors-impl/Sensors.h
+@@ -48,15 +48,21 @@
+           mReadWakeLockQueueRun(false),
+           mAutoReleaseWakeLockTime(0),
+           mHasWakeLock(false) {
++        // VirtIO's host bridge supplies motion only. Keep other products'
++        // example sensor set unchanged and preserve framework fusion sensors.
+         AddSensor<AccelSensor>();
+         AddSensor<GyroSensor>();
++#ifndef VIRTIO_MOTION_SENSORS_ONLY
+         AddSensor<AmbientTempSensor>();
+         AddSensor<PressureSensor>();
++#endif
+         AddSensor<MagnetometerSensor>();
++#ifndef VIRTIO_MOTION_SENSORS_ONLY
+         AddSensor<LightSensor>();
+         AddSensor<ProximitySensor>();
+         AddSensor<RelativeHumiditySensor>();
+         AddSensor<HingeAngleSensor>();
++#endif
+     }
+ 
+     virtual ~Sensors() {
