@@ -4,13 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       build_mode:
-        description: "Operation: legacy image build, AOSP inventory or source preparation"
+        description: "Operation: legacy build, AOSP inventory, source preparation or AOSP build"
         required: true
         type: choice
         options:
           - lineage
           - inspect-aosp
           - prepare-aosp
+          - aosp
         default: lineage
       runner:
         description: "Runner"
@@ -60,6 +61,43 @@ permissions:
   attestations: write
 
 jobs:
+  aosp:
+    if: github.event_name == 'workflow_dispatch' && inputs.build_mode == 'aosp'
+    runs-on: [self-hosted, Linux, X64, android-lineage-qemu]
+    timeout-minutes: 720
+    concurrency:
+      group: aosp-source-and-build
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: aosp-build-control
+          persist-credentials: false
+      - name: Build and verify AOSP images
+        run: bash aosp-build-control/scripts/build-aosp-runner.sh
+      - name: Upload verified AOSP images
+        uses: actions/upload-artifact@v4
+        with:
+          name: aosp-arm64-images-${{ github.run_id }}
+          path: aosp-build-control/aosp-dist/build.*/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+      - name: Preserve AOSP diagnostics
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aosp-build-diagnostics-${{ github.run_id }}
+          path: |
+            aosp-build-state/*.json
+            aosp-build-state/*.txt
+            aosp-build-state/*.xml
+            aosp-build-state/*.log
+            aosp-build-state/*.gz
+          retention-days: 7
+
   prepare-aosp:
     if: github.event_name == 'workflow_dispatch' && inputs.build_mode == 'prepare-aosp'
     runs-on: [self-hosted, Linux, X64, android-lineage-qemu]
