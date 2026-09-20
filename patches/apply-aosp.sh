@@ -28,3 +28,4 @@ apply_one frameworks/base 0022-uiautomator-include-test-base-dependency.patch
 apply_one system/core 0024-aosp-init-virtio-boot-and-vendor-hook.patch
 apply_one build/soong 0025-aosp-soong-allow-virtio-mesa-build.patch
 apply_one external/gptfdisk 0026-aosp-gptfdisk-recovery-variants.patch
+apply_one bootable/recovery 0027-aosp-recovery-keep-ethernet-up.patch

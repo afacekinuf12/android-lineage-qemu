@@ -21,10 +21,13 @@
   上次中断留下的 WebView 空仓库被 repo 误判为非浅克隆，开始下载全部历史。
   新增恢复逻辑仅对无 refs、无 shallow 边界的 AOSP 仓库显式获取目标 tag；
   已有历史保持原状。两项真实本地 Git 回归通过。
+  首次恢复遇到上次中断留下的 `shallow.lock`；确认无 Git 写入进程后，
+  已将 8 个锁文件归档并记录清单。目前运行第 2 次尝试，WebView 数据正在传输。
 - [完整构建任务 35483478149](https://github.com/afacekinuf12/android-lineage-qemu/actions/runs/35483478149)：
   已提交，等待源码准备释放同一 runner；构建修订为 `9e1c423`。
   直接读取 runner 环境发现其 PATH 不含 `/sbin`，会导致 `modinfo` 不可用；
   已修复。前序排队任务已取消并替换，源码缓存保留供恢复使用。
+  第 1 次尝试因源码未准备完成被前置检查正确拒绝；第 2 次尝试正在等待。
 - 内核缓存包含 ARM64/4 KB 的 `6.12.81-4k-g4f6bf47200d9` Image 与模块。
   `stage-aosp-kernel.py` 在构建时检查 Image 头、页大小、源码版本、
   每个模块的 vermagic 和必需模块，保存文件哈希。
@@ -34,7 +37,8 @@
 - 新工作流使用 `bp2a` release configuration、全新产品输出和既有签名库。
   产物通过审计后上传 Actions artifact，并保留构建日志和来源记录。
   本流程不创建 GitHub Release。
-- 最新提交的补丁 CI 通过；77 项既有测试和 4 项内核暂存测试通过。
+- 最新提交的补丁 CI 通过；77 项既有测试、4 项内核暂存测试和
+  2 项中断 fetch 恢复测试通过，共 83 项。
 
 **本记录为已提交任务的检查点，不表示源码同步、镜像构建或实机复测已通过。**
 现有 ADB 测试端仍运行旧镜像。
@@ -56,6 +60,7 @@ Lineage `frameworks/base/services/Android.bp` 还直接依赖
 | `patches/0024-*.patch` | 为 VirtIO 的 `boot_devices=any` 提供 by-name 设备识别，并连接设备所需的 vendor init 库 |
 | `patches/0025-*.patch` | 允许 VirtIO 使用的 Mesa Android.mk，范围仅该路径 |
 | `patches/0026-*.patch` | 为 recovery 创建 sgdisk/libgptf 变体 |
+| `patches/0027-*.patch` | recovery 进入菜单时保持以太网启用，避免关闭已由 init 启动 DHCP 的接口 |
 | `patches/apply-aosp.sh` | 独立硬件补丁链，保留传感器和 UI Automator 修复；不接入原来的 Pixel 名称改写和按进程属性替换链 |
 | `scripts/prepare-aosp-keys.sh` | 从既有签名库复制完整密钥对，独立设置默认签名路径；缺失时失败，不自动换钥 |
 | `build-aosp.sh` | 源码依赖检查、全新输出目录、AOSP 产品构建、验收后导出，保存 resolved manifest 和 SHA-256 |
@@ -97,7 +102,9 @@ BUILD_FLAVOR=aosp BUILD_TARGET=arm64only \
 ```
 
 `--check` 只检查源码与前提，不产生镜像，也不证明所有 Soong、SELinux、recovery 以太网
-适配已完成。上游设备树还列出 recovery 以太网相关适配要求；完整编译可能暴露额外缺口。
+适配已完成。检查确认 AOSP 的 `EthernetDevice::PreRecovery()` 原本会关闭网卡，
+与设备 `early-boot` 启用接口并启动 DHCP 的流程冲突；0027 修复这一冲突。
+recovery 地址展示、实际 DHCP、ADB 和 fastbootd 连接仍需启动验证。
 当前脚本仅支持 ARM64。
 
 每次构建使用新的 `out/virtio-aosp.*`，通过后导出到本仓库被 Git 忽略的 `aosp-dist/build.*`。
@@ -110,7 +117,7 @@ AOSP 会按自己的规则生成 `dev-keys` 等标签；私有签名不自动等
   缺失密钥、残留属性、APK/DEX 依赖、损坏输入和缺失核心应用。
 - 0023 与已有 sensor feature 补丁在缓存的上游 VirtIO 源码上串联应用通过；
   Make 执行确认 Lineage 分支包含该 overlay，AOSP 分支不包含。
-- 0021、0022、0024、0025、0026 在 AOSP `android-16.0.0_r4` 原始文件上应用通过。
+- 0021、0022、0024、0025、0026、0027 在 AOSP `android-16.0.0_r4` 原始文件上应用通过。
   sensor 注册代码编译/执行、UI wrapper 主机验证也通过。
 - 用本机 aapt2 读取旧测试 VM 的实际 `org.lineageos.platform-res.apk`，
   确认识别到 `lineageos.platform`；不是只用虚构数据验证包名解析。

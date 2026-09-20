@@ -19,6 +19,8 @@ SERIES = (
     ("build/soong", "0025-aosp-soong-allow-virtio-mesa-build.patch",
      ("ui/build/androidmk_denylist.go",)),
     ("external/gptfdisk", "0026-aosp-gptfdisk-recovery-variants.patch", ("Android.bp",)),
+    ("bootable/recovery", "0027-aosp-recovery-keep-ethernet-up.patch",
+     ("recovery_ui/ethernet_device.cpp",)),
 )
 
 

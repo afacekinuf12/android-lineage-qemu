@@ -1,0 +1,19 @@
+diff --git a/recovery_ui/ethernet_device.cpp b/recovery_ui/ethernet_device.cpp
+--- a/recovery_ui/ethernet_device.cpp
++++ b/recovery_ui/ethernet_device.cpp
+@@ -42,8 +42,13 @@
+ }
+ 
+ void EthernetDevice::PreRecovery() {
+-  SetInterfaceFlags(0, IFF_UP);
+-  SetTitleIPv6LinkLocalAddress(false);
++  // DHCP may already be running from init's early-boot action. Keep the
++  // interface up when entering recovery or returning from fastbootd.
++  if (SetInterfaceFlags(IFF_UP, 0) < 0) {
++    LOG(ERROR) << "Failed to bring up interface";
++    return;
++  }
++  SetTitleIPv6LinkLocalAddress(true);
+ }
+ 
+ void EthernetDevice::PreFastboot() {
