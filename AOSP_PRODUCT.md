@@ -18,11 +18,16 @@
 
 - [源码准备任务 35482313541](https://github.com/afacekinuf12/android-lineage-qemu/actions/runs/35482313541)：
   已初始化 Android 16 r4，正在同步 AOSP 和 VirtIO 依赖。
-- [完整构建任务 35482441950](https://github.com/afacekinuf12/android-lineage-qemu/actions/runs/35482441950)：
-  已提交，等待源码准备释放同一 runner；构建修订为 `0c4ce3d`。
+- [完整构建任务 35482942369](https://github.com/afacekinuf12/android-lineage-qemu/actions/runs/35482942369)：
+  已提交，等待源码准备释放同一 runner；构建修订为 `041f469`。
+  直接读取 runner 环境发现其 PATH 不含 `/sbin`，会导致 `modinfo` 不可用；
+  已修复并替换原排队任务 `35482441950`，未中断源码同步。
 - 内核缓存包含 ARM64/4 KB 的 `6.12.81-4k-g4f6bf47200d9` Image 与模块。
   `stage-aosp-kernel.py` 在构建时检查 Image 头、页大小、源码版本、
-  每个模块的 vermagic 和必需模块，保存文件哈希；尚未完成该远端检查与新系统启动。
+  每个模块的 vermagic 和必需模块，保存文件哈希。
+  已在 runner 完成 Image 头、4 KB 配置、源码版本及全部 109 个模块的
+  vermagic 检查，暂存到独立 AOSP 树；110 个文件的哈希与来源已保存。
+  内核在新系统中的启动和模块加载尚未验证。
 - 新工作流使用 `bp2a` release configuration、全新产品输出和既有签名库。
   产物通过审计后上传 Actions artifact，并保留构建日志和来源记录。
   本流程不创建 GitHub Release。

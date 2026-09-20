@@ -47,6 +47,7 @@ install -m 644 "$control/products/virtio_aosp/local_manifest.xml" \
 synced=false
 for attempt in 1 2 3; do
   echo "AOSP source sync attempt $attempt"
+  python3 -B "$control/scripts/repair-incomplete-aosp-fetches.py" "$source_root"
   if repo sync -c --no-clone-bundle --no-tags --retry-fetches=3 -j8; then
     synced=true
     break
