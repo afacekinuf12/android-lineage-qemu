@@ -25,9 +25,16 @@ def main():
     ]
     report = {
         "platform": platform.platform(), "cpu_count": os.cpu_count(),
+        "python": sys.version,
         "tools": {name: shutil.which(name) for name in
                   ("python3", "git", "repo", "qemu-img", "ninja", "make", "java", "ccache")},
         "workspace": str(workspace), "filesystems": {}, "source_trees": [],
+    }
+    report["python_candidates"] = {
+        str(p): p.is_file() for p in (
+            home_dir / "miniconda3/bin/python3",
+            workspace / ".build-python/bin/python3",
+        )
     }
     for path in (workspace, home_dir, Path("/data00")):
         if path.is_dir():
@@ -60,6 +67,22 @@ def main():
             name: (out / name).is_file()
             for name in ("kernel", ".kernel_version.txt", "boot.img", "vendor_boot.img")
         }
+        entry["kernel_objects"] = [
+            {"path": str(p.relative_to(path)), "bytes": p.stat().st_size}
+            for pattern in ("**/Image", "**/Image.gz", "**/*.ko", ".config")
+            for p in (out / "obj/KERNEL_OBJ").glob(pattern) if p.is_file()
+        ]
+        entry["kernel_source"] = git_revision(path / "kernel/virt/virtio")
+        entry["kernel_version"] = (
+            (out / ".kernel_version.txt").read_text() if
+            (out / ".kernel_version.txt").is_file() else None)
+        entry["kernel_config"] = (
+            (out / "obj/KERNEL_OBJ/.config").read_text() if
+            (out / "obj/KERNEL_OBJ/.config").is_file() else None)
+        entry["release_configs"] = [
+            str(p.relative_to(path)) for p in
+            (path / "build/release/release_configs").glob("*.textproto")
+        ]
         report["source_trees"].append(entry)
     keys = home_dir / ".android-lineage-qemu-release-keys"
     report["signing_pairs_present"] = {

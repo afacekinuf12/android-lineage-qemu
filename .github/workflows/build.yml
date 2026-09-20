@@ -4,12 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       build_mode:
-        description: "Operation: legacy image build or AOSP runner inventory"
+        description: "Operation: legacy image build, AOSP inventory or source preparation"
         required: true
         type: choice
         options:
           - lineage
           - inspect-aosp
+          - prepare-aosp
         default: lineage
       runner:
         description: "Runner"
@@ -59,6 +60,33 @@ permissions:
   attestations: write
 
 jobs:
+  prepare-aosp:
+    if: github.event_name == 'workflow_dispatch' && inputs.build_mode == 'prepare-aosp'
+    runs-on: [self-hosted, Linux, X64, android-lineage-qemu]
+    timeout-minutes: 360
+    concurrency:
+      group: aosp-source-and-build
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: aosp-build-control
+          persist-credentials: false
+      - name: Prepare independent AOSP source
+        run: bash aosp-build-control/scripts/prepare-aosp-runner.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aosp-source-preparation-${{ github.run_id }}
+          path: |
+            aosp-build-state/*.json
+            aosp-build-state/*.txt
+            aosp-build-state/*.xml
+            aosp-build-state/*.log
+          retention-days: 7
+
   inspect-aosp:
     if: github.event_name == 'workflow_dispatch' && inputs.build_mode == 'inspect-aosp'
     runs-on: [self-hosted, Linux, X64, android-lineage-qemu]
@@ -79,7 +107,7 @@ jobs:
           retention-days: 7
 
   check:
-    if: github.event_name != 'workflow_dispatch' || inputs.build_mode != 'inspect-aosp'
+    if: github.event_name != 'workflow_dispatch' || inputs.build_mode == 'lineage'
     runs-on: ubuntu-latest
     outputs:
       build: ${{ steps.check.outputs.build }}
