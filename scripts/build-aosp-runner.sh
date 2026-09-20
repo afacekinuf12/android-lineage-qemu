@@ -15,7 +15,8 @@ for python_bin in "$workspace/.build-python/bin" "$HOME/miniconda3/bin"; do
     break
   fi
 done
-export PATH="$state/bin:$HOME/.local/bin:$AOSP_SOURCE_ROOT/prebuilts/sdk/tools/linux/bin:$PATH"
+# The Debian runner service omits sbin; modinfo/depmod live there.
+export PATH="$state/bin:$HOME/.local/bin:$AOSP_SOURCE_ROOT/prebuilts/sdk/tools/linux/bin:$PATH:/usr/sbin:/sbin"
 export LINEAGE_BUILD_PYTHON
 LINEAGE_BUILD_PYTHON=$(dirname "$(command -v python3)")
 python3 -c 'import yaml, google.protobuf, mako, packaging'
