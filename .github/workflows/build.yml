@@ -74,6 +74,16 @@ jobs:
         with:
           path: aosp-build-control
           persist-credentials: false
+      - name: Record prerequisites before source sync
+        run: |
+          mkdir -p aosp-build-state
+          python3 -B aosp-build-control/scripts/inspect-aosp-runner.py \
+            aosp-build-state/runner-inspection.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aosp-prerequisites-${{ github.run_id }}
+          path: aosp-build-state/runner-inspection.json
+          retention-days: 7
       - name: Prepare independent AOSP source
         run: bash aosp-build-control/scripts/prepare-aosp-runner.sh
       - uses: actions/upload-artifact@v4
