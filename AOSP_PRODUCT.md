@@ -10,6 +10,27 @@
 **尚未完成完整 Android 构建、启动或 RiskDetector 复测，LineageOS 验收项仍未关闭。**
 新入口使用另行准备的 AOSP 平台源码，不能把旧 Lineage framework 切换一个产品名后直接当作 AOSP。
 
+### 2026-09-20 构建执行
+
+已启用 GitHub 自托管 Linux 构建机：32 核、约 128 GB 内存，
+准备开始时约 1 TB 可用空间。独立源码位于 runner 工作目录的
+`android/aosp16-r4`，旧 `android/lineage` 只作为对象与内核缓存。
+
+- [源码准备任务 35482313541](https://github.com/afacekinuf12/android-lineage-qemu/actions/runs/35482313541)：
+  已初始化 Android 16 r4，正在同步 AOSP 和 VirtIO 依赖。
+- [完整构建任务 35482441950](https://github.com/afacekinuf12/android-lineage-qemu/actions/runs/35482441950)：
+  已提交，等待源码准备释放同一 runner；构建修订为 `0c4ce3d`。
+- 内核缓存包含 ARM64/4 KB 的 `6.12.81-4k-g4f6bf47200d9` Image 与模块。
+  `stage-aosp-kernel.py` 在构建时检查 Image 头、页大小、源码版本、
+  每个模块的 vermagic 和必需模块，保存文件哈希；尚未完成该远端检查与新系统启动。
+- 新工作流使用 `bp2a` release configuration、全新产品输出和既有签名库。
+  产物通过审计后上传 Actions artifact，并保留构建日志和来源记录。
+  本流程不创建 GitHub Release。
+- 最新提交的补丁 CI 通过；77 项既有测试和 4 项内核暂存测试通过。
+
+**本记录为已提交任务的检查点，不表示源码同步、镜像构建或实机复测已通过。**
+现有 ADB 测试端仍运行旧镜像。
+
 检测证据确认旧镜像有 24 个相关包/overlay、5 个 `ro.lineage.*` 属性、
 另外 3 个带 Lineage 目标名的构建属性，以及 8 个相关 feature。
 `vendor/lineage/config/common.mk`、`lineage_sdk_common.mk` 和 `version.mk`
