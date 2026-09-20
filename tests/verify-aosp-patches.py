@@ -5,6 +5,8 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
+import urllib.error
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,6 +26,21 @@ SERIES = (
 )
 
 
+def upstream_file(url):
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(url, timeout=30) as response:
+                return base64.b64decode(response.read(), validate=True)
+        except urllib.error.HTTPError as error:
+            if error.code not in (429, 500, 502, 503, 504) or attempt == 3:
+                raise
+        except (urllib.error.URLError, TimeoutError):
+            if attempt == 3:
+                raise
+        print("Retrying unavailable AOSP source: " + url, flush=True)
+        time.sleep(2 ** attempt)
+
+
 def main():
     with tempfile.TemporaryDirectory(prefix="aosp-patches-") as temp:
         workspace = Path(temp)
@@ -34,8 +51,7 @@ def main():
             for relative in files:
                 url = ("https://android.googlesource.com/platform/{}/+/refs/tags/{}/{}"
                        "?format=TEXT").format(project, REVISION, relative)
-                with urllib.request.urlopen(url, timeout=30) as response:
-                    data = base64.b64decode(response.read(), validate=True)
+                data = upstream_file(url)
                 path = checkout / relative
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(data)
