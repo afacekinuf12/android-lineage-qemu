@@ -188,12 +188,15 @@ class AospBuildTests(unittest.TestCase):
             root = Path(temp)
             inherited = root / "device/virt/virtio_arm64only/aosp_virtio_arm64only.mk"
             inherited.parent.mkdir(parents=True)
-            inherited.write_text("PRODUCT_PACKAGES += Settings SettingsProvider SystemUI\n")
+            inherited.write_text(
+                "PRODUCT_PACKAGES += Settings SettingsProvider SystemUI\n"
+                "SELECTED_KERNEL := device/virt/kernel-virtio/6.12/"
+                "$(TARGET_PREBUILT_KERNEL_ARCH)/$(TARGET_PREBUILT_KERNEL_PAGE_SIZE)/kernel\n")
             harness = root / "test.mk"
             harness.write_text(
                 "inherit-product = $(eval include $(1))\n"
                 "include " + str(ROOT / "products/virtio_aosp/virtio_aosp_arm64.mk") + "\n"
-                "all:\n\t@echo $(PRODUCT_NAME) $(PRODUCT_PACKAGES)\n")
+                "all:\n\t@echo $(PRODUCT_NAME) $(PRODUCT_PACKAGES) $(SELECTED_KERNEL)\n")
             run = lambda **kw: subprocess.run(["make", "-s", "-f", str(harness)],
                 cwd=root, capture_output=True, text=True, timeout=5, **kw)
             self.assertNotEqual(0, run().returncode)
@@ -203,6 +206,7 @@ class AospBuildTests(unittest.TestCase):
             result = run()
             self.assertEqual(0, result.returncode, result.stderr)
             self.assertIn("virtio_aosp_arm64 Settings SettingsProvider SystemUI", result.stdout)
+            self.assertIn("device/virt/kernel-virtio/6.12/arm64/4k/kernel", result.stdout)
             rejected = run(env=dict(os.environ, LINEAGE_BUILD="virtio_arm64only"))
             self.assertNotEqual(0, rejected.returncode)
 

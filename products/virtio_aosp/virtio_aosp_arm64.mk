@@ -4,6 +4,11 @@ ifneq ($(strip $(LINEAGE_BUILD)),)
 $(error virtio_aosp_arm64 requires an AOSP build environment; LINEAGE_BUILD is set)
 endif
 
+# AOSP does not supply the device tree's Lineage kernel-page-size default.
+# Select the exact validated prebuilt before its PRODUCT_COPY_FILES are read.
+TARGET_PREBUILT_KERNEL_ARCH := arm64
+TARGET_PREBUILT_KERNEL_PAGE_SIZE := 4k
+
 # Keep the upstream AOSP app, framework and provider dependency graph together.
 # This file does not inherit a Lineage product or selectively uninstall its SDK.
 $(call inherit-product, device/virt/virtio_arm64only/aosp_virtio_arm64only.mk)
