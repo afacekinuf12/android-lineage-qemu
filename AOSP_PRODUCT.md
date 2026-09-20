@@ -16,12 +16,15 @@
 准备开始时约 1 TB 可用空间。独立源码位于 runner 工作目录的
 `android/aosp16-r4`，旧 `android/lineage` 只作为对象与内核缓存。
 
-- [源码准备任务 35482313541](https://github.com/afacekinuf12/android-lineage-qemu/actions/runs/35482313541)：
-  已初始化 Android 16 r4，正在同步 AOSP 和 VirtIO 依赖。
-- [完整构建任务 35482942369](https://github.com/afacekinuf12/android-lineage-qemu/actions/runs/35482942369)：
-  已提交，等待源码准备释放同一 runner；构建修订为 `041f469`。
+- [源码准备任务 35483465871](https://github.com/afacekinuf12/android-lineage-qemu/actions/runs/35483465871)：
+  已初始化 Android 16 r4，正在恢复 AOSP 和 VirtIO 依赖同步。
+  上次中断留下的 WebView 空仓库被 repo 误判为非浅克隆，开始下载全部历史。
+  新增恢复逻辑仅对无 refs、无 shallow 边界的 AOSP 仓库显式获取目标 tag；
+  已有历史保持原状。两项真实本地 Git 回归通过。
+- [完整构建任务 35483478149](https://github.com/afacekinuf12/android-lineage-qemu/actions/runs/35483478149)：
+  已提交，等待源码准备释放同一 runner；构建修订为 `9e1c423`。
   直接读取 runner 环境发现其 PATH 不含 `/sbin`，会导致 `modinfo` 不可用；
-  已修复并替换原排队任务 `35482441950`，未中断源码同步。
+  已修复。前序排队任务已取消并替换，源码缓存保留供恢复使用。
 - 内核缓存包含 ARM64/4 KB 的 `6.12.81-4k-g4f6bf47200d9` Image 与模块。
   `stage-aosp-kernel.py` 在构建时检查 Image 头、页大小、源码版本、
   每个模块的 vermagic 和必需模块，保存文件哈希。
