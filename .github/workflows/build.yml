@@ -3,6 +3,14 @@ name: Build Android images
 on:
   workflow_dispatch:
     inputs:
+      build_mode:
+        description: "Operation: legacy image build or AOSP runner inventory"
+        required: true
+        type: choice
+        options:
+          - lineage
+          - inspect-aosp
+        default: lineage
       runner:
         description: "Runner"
         required: true
@@ -51,7 +59,27 @@ permissions:
   attestations: write
 
 jobs:
+  inspect-aosp:
+    if: github.event_name == 'workflow_dispatch' && inputs.build_mode == 'inspect-aosp'
+    runs-on: [self-hosted, Linux, X64, android-lineage-qemu]
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: aosp-build-control
+          persist-credentials: false
+      - name: Inspect build resources
+        run: python3 -B aosp-build-control/scripts/inspect-aosp-runner.py "$RUNNER_TEMP/aosp-runner-inspection.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aosp-runner-inspection
+          path: ${{ runner.temp }}/aosp-runner-inspection.json
+          retention-days: 7
+
   check:
+    if: github.event_name != 'workflow_dispatch' || inputs.build_mode != 'inspect-aosp'
     runs-on: ubuntu-latest
     outputs:
       build: ${{ steps.check.outputs.build }}
