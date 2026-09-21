@@ -24,6 +24,13 @@
   首次恢复遇到上次中断留下的 `shallow.lock`；确认无 Git 写入进程后，
   已将 8 个锁文件归档并记录清单。WebView 和 Clang 目标版本均已成功取回。
   平台依赖预检检查 66,130 个源码文件，通过；resolved manifest 已保存。
+- [构建重跑 35551982918](https://github.com/afacekinuf12/android-lineage-qemu/actions/runs/35551982918)：
+  2026-09-21 使用已完成的源码，未再次同步。修订 `ca1c699` 的源码预检通过，
+  但逐个检查补丁是否已应用的逻辑被后续补丁改动的上下文破坏。
+  现在每个项目在独立临时 Git index 中生成整组补丁的最终差异，再检查和应用；
+  不修改真实 index 或 HEAD，冲突时保留工作区。构建机的实际 `virt-common`
+  重复应用检查通过，前后源码差异完全一致；新回归覆盖重叠补丁、冲突、
+  旧流程的部分应用状态和后续补丁无效时不写入早期补丁。
 - [完整构建任务 35484039288](https://github.com/afacekinuf12/android-lineage-qemu/actions/runs/35484039288)：
   构建修订为 `ad87d88`，包含 recovery 网卡修复；源码预检和 lunch 已通过。
   实际配置暴露 AOSP 未提供设备树的内核页大小默认值，查找目录缺少 `4k`；
@@ -83,7 +90,7 @@ Lineage `frameworks/base/services/Android.bp` 还直接依赖
 
 1. 准备全新的 AOSP `android-16.0.0_r4` 平台源码树。
 2. 将 `products/virtio_aosp/local_manifest.xml` 放入其 `.repo/local_manifests/` 后同步设备支持项目。
-   这份补充清单使用 `lineage-23.2` 分支，尚未在完整 repo sync 中验证所有组合；
+   这份补充清单使用 `lineage-23.2` 分支，已完成与 AOSP r4 的完整 repo sync；
    真正构建时会保存解析后的提交 manifest。发生路径冲突时必须先核对来源，不能直接覆盖平台仓库。
 3. 提供匹配设备配置的 VirtIO **6.12 ARM64 预编译内核和模块**，
    位于设备 makefile 解析出的 `device/virt/kernel-virtio/6.12/arm64/<page-size>/`。
@@ -141,7 +148,7 @@ AOSP 会按自己的规则生成 `dev-keys` 等标签；私有签名不自动等
 
 以下工作仍需要完整构建机和新镜像：
 
-- 完成 AOSP/VirtIO 源码组合的 repo sync、Soong/链接、SELinux、recovery 与内核模块验证。
+- 完成 AOSP/VirtIO 源码组合的 Soong/链接、SELinux、recovery 与内核模块验证。
 - 核对包签名、镜像及生成包内容；全新测试副本启动并验证 Settings、首次开机、桌面和 SystemUI。
 - 检查显示、输入、网络、相机与传感器事件流，确认组件替换未损坏硬件路径。
 - 同一 APK 复测 LineageOS 分组、24 个相关包标记、构建属性和功能声明。
