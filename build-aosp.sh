@@ -34,12 +34,14 @@ bash "$root/scripts/prepare-aosp-keys.sh" "$android_root"
 # Never reuse the old Lineage staging directory or a different product's
 # system_ext/product/vendor overlays.
 mkdir -p "$android_root/out"
+build_output=$(mktemp -d "$android_root/out/virtio-aosp.XXXXXXXX")
+# Soong test-package rules require output paths relative to the source root.
 export OUT_DIR
-OUT_DIR=$(mktemp -d "$android_root/out/virtio-aosp.XXXXXXXX")
+OUT_DIR=${build_output#"$android_root/"}
 if [[ -n "${AOSP_BUILD_STATE_DIR:-}" ]]; then
-  printf '%s\n' "$OUT_DIR" > "$AOSP_BUILD_STATE_DIR/active-output.txt"
+  printf '%s\n' "$build_output" > "$AOSP_BUILD_STATE_DIR/active-output.txt"
   trap 'status=$?; for name in soong.log error.log verbose.log.gz; do
-    if [[ -f "$OUT_DIR/$name" ]]; then cp "$OUT_DIR/$name" "$AOSP_BUILD_STATE_DIR/"; fi
+    if [[ -f "$build_output/$name" ]]; then cp "$build_output/$name" "$AOSP_BUILD_STATE_DIR/"; fi
   done; exit "$status"' EXIT
 fi
 export BUILD_USERNAME=android BUILD_HOSTNAME=buildhost TZ=UTC AB_OTA_UPDATER=false

@@ -38,6 +38,12 @@
   `external/libdisplay-info-upstream` 和 `prebuilts/mesa-build-dep` 两项间接依赖。
   已补入清单，并增加设备依赖闭合预检；两个内核源码依赖明确由配套预编译内核替代。
   91 项主机回归通过；已有源码保留，只补充缺失项目。
+- [构建任务 35552732933](https://github.com/afacekinuf12/android-lineage-qemu/actions/runs/35552732933)：
+  `500f00a` 的设备依赖已完整，Soong 继续分析时发现输出路径问题：
+  `continuous_native_tests` 将绝对路径的主机 JAR 误当作设备安装路径，
+  导致 `Path is outside directory`。其上游规则按 `out` 前缀排除主机输出，
+  因此入口改用源码树内相对 `OUT_DIR`；诊断记录仍保存绝对路径。
+  保留全新产品输出隔离，91 项主机回归通过，等待实际构建验证。
 - [完整构建任务 35484039288](https://github.com/afacekinuf12/android-lineage-qemu/actions/runs/35484039288)：
   构建修订为 `ad87d88`，包含 recovery 网卡修复；源码预检和 lunch 已通过。
   实际配置暴露 AOSP 未提供设备树的内核页大小默认值，查找目录缺少 `4k`；
