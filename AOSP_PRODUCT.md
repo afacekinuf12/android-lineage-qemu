@@ -31,6 +31,13 @@
   不修改真实 index 或 HEAD，冲突时保留工作区。构建机的实际 `virt-common`
   重复应用检查通过，前后源码差异完全一致；新回归覆盖重叠补丁、冲突、
   旧流程的部分应用状态和后续补丁无效时不写入早期补丁。
+- [构建任务 35552284333](https://github.com/afacekinuf12/android-lineage-qemu/actions/runs/35552284333)：
+  `fbdb86b` 已通过补丁与内核选择阶段，Soong 构建工具编译完成，
+  依赖图分析发现 `libdisplay_info_upstream` 未定义。
+  对照设备项目的 `lineage.dependencies`，清单遗漏了
+  `external/libdisplay-info-upstream` 和 `prebuilts/mesa-build-dep` 两项间接依赖。
+  已补入清单，并增加设备依赖闭合预检；两个内核源码依赖明确由配套预编译内核替代。
+  91 项主机回归通过；已有源码保留，只补充缺失项目。
 - [完整构建任务 35484039288](https://github.com/afacekinuf12/android-lineage-qemu/actions/runs/35484039288)：
   构建修订为 `ad87d88`，包含 recovery 网卡修复；源码预检和 lunch 已通过。
   实际配置暴露 AOSP 未提供设备树的内核页大小默认值，查找目录缺少 `4k`；

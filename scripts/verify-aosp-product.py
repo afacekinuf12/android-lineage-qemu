@@ -34,6 +34,39 @@ REQUIRED_PACKAGES = {
 BYTE_MARKERS = (
     b"org.lineageos", b"org/lineageos", b"Llineageos/", b"lineageos.platform",
 )
+SUPPORT_MANIFEST = Path(__file__).resolve().parents[1] / "products/virtio_aosp/local_manifest.xml"
+# These two source repositories are replaced by the validated prebuilt kernel.
+PREBUILT_KERNEL_DEPENDENCIES = {
+    ("kernel/mainline/configs", "android_kernel_mainline_configs"),
+    ("kernel/virt/virtio", "android_kernel_virt_virtio"),
+}
+
+
+def support_dependency_errors(root, manifest=SUPPORT_MANIFEST):
+    projects = {p.attrib["path"]: p.attrib["name"]
+                for p in ET.parse(manifest).getroot().findall("project")}
+    errors = []
+    for relative in projects:
+        project = root / relative
+        if not (project / ".git").exists():
+            errors.append("missing device support checkout: " + relative)
+        dependencies = project / "lineage.dependencies"
+        if not dependencies.is_file():
+            continue
+        entries = json.loads(dependencies.read_text())
+        if not isinstance(entries, list):
+            raise ValueError("Invalid dependency list: " + str(dependencies))
+        for entry in entries:
+            if not isinstance(entry, dict) or not all(
+                    isinstance(entry.get(key), str) for key in ("target_path", "repository")):
+                raise ValueError("Invalid dependency entry: " + str(dependencies))
+            target, repository = entry["target_path"], entry["repository"]
+            if (target, repository) in PREBUILT_KERNEL_DEPENDENCIES:
+                continue
+            if projects.get(target) != repository:
+                errors.append("device dependency absent from support manifest: {} -> {}".format(
+                    relative, target))
+    return errors
 
 
 def dependency_lines(text):
@@ -49,13 +82,15 @@ def dependency_lines(text):
 
 def verify_source(root):
     root = Path(root).resolve()
-    errors = []
+    errors = support_dependency_errors(root)
     required = ("build/envsetup.sh", "build/soong/soong_ui.bash",
                 "device/virt/virtio_arm64only/aosp_virtio_arm64only.mk",
                 "device/virt/virtio-common/device-common.mk",
                 "device/virt/virt-common/virt-common.mk",
                 "device/mainline/common/mainline_common.mk",
                 "hardware/mainline/common/Android.bp",
+                "external/libdisplay-info-upstream/Android.bp",
+                "prebuilts/mesa-build-dep/bin/meson",
                 "hardware/interfaces/sensors/aidl/default/Android.bp",
                 "frameworks/base/packages/SettingsProvider/Android.bp",
                 "frameworks/base/packages/SystemUI/Android.bp",

@@ -154,6 +154,57 @@ class AospProductTests(unittest.TestCase):
                       result["errors"])
 
 
+class SupportDependencyTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        self.manifest = self.root / "support.xml"
+        self.projects = {
+            "device/example": "device_repo",
+            "external/composer": "composer_repo",
+            "external/display": "display_repo",
+        }
+        for relative in self.projects:
+            (self.root / relative / ".git").mkdir(parents=True)
+        (self.root / "device/example/lineage.dependencies").write_text(json.dumps([
+            {"target_path": "external/composer", "repository": "composer_repo"},
+            {"target_path": "kernel/virt/virtio", "repository": "android_kernel_virt_virtio"},
+            {"target_path": "kernel/mainline/configs", "repository": "android_kernel_mainline_configs"},
+        ]))
+        (self.root / "external/composer/lineage.dependencies").write_text(json.dumps([
+            {"target_path": "external/display", "repository": "display_repo"},
+        ]))
+        self.write_manifest()
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def write_manifest(self):
+        tree = ET.Element("manifest")
+        for path, name in self.projects.items():
+            ET.SubElement(tree, "project", path=path, name=name)
+        ET.ElementTree(tree).write(self.manifest)
+
+    def test_complete_transitive_hardware_dependencies_accept_prebuilt_kernel(self):
+        self.assertEqual([], AUDIT.support_dependency_errors(self.root, self.manifest))
+
+    def test_nested_dependency_must_be_in_manifest(self):
+        del self.projects["external/display"]
+        self.write_manifest()
+        errors = AUDIT.support_dependency_errors(self.root, self.manifest)
+        self.assertTrue(any("external/composer -> external/display" in e for e in errors))
+
+    def test_manifest_entry_without_checkout_is_rejected(self):
+        (self.root / "external/display/.git").rmdir()
+        errors = AUDIT.support_dependency_errors(self.root, self.manifest)
+        self.assertIn("missing device support checkout: external/display", errors)
+
+    def test_unexpected_repository_at_same_path_is_rejected(self):
+        self.projects["external/display"] = "different_repo"
+        self.write_manifest()
+        self.assertTrue(AUDIT.support_dependency_errors(self.root, self.manifest))
+
+
 class AospBuildTests(unittest.TestCase):
     def test_overlay_condition_is_balanced_and_changes_installation(self):
         patch = (ROOT / "patches/0023-virt-common-scope-lineage-settings-overlay.patch").read_text()
