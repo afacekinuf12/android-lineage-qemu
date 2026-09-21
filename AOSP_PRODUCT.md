@@ -51,7 +51,16 @@
   新增 0028 补齐启动环境和设备属性 hook；默认 no-op 与设备覆盖实现的
   编译、链接、执行检查通过，完整补丁链验证和 96 项主机回归通过。
   新增显式增量恢复入口，仅接受同源码目录、产品、variant、release 和
-  resolved manifest 的已登记输出；默认仍创建新输出。实际恢复结果待验证。
+  resolved manifest 的已登记输出；默认仍创建新输出。
+- SSH 增量构建 `0d43ab4`：
+  已复用前轮约 31,000 项输出，`init_virt.cpp`、主系统的 vendor hook 与
+  property service 已编译通过，第一阶段 init 已链接通过。
+  继续完成 93,012/122,442 项后，15 个 Java 进程在宿主机动态加载的
+  `libasyncProfiler.so+0x3048c` 内发生 SIGSEGV，崩溃线程均为 Attach Listener。
+  原有 `JAVA_TOOL_OPTIONS=-XX:+DisableAttachMechanism` 被 Ninja 环境过滤移除。
+  新增 0029，只允许该精确参数经过设备的 Ninja 环境白名单，
+  其他 Java 参数仍按上游规则过滤。96 项回归、完整 AOSP 补丁链和四种
+  Make 参数传递检查通过；失败日志与 JVM 崩溃报告已归档，等待增量重跑验证。
 - [完整构建任务 35484039288](https://github.com/afacekinuf12/android-lineage-qemu/actions/runs/35484039288)：
   构建修订为 `ad87d88`，包含 recovery 网卡修复；源码预检和 lunch 已通过。
   实际配置暴露 AOSP 未提供设备树的内核页大小默认值，查找目录缺少 `4k`；
@@ -96,6 +105,7 @@ Lineage `frameworks/base/services/Android.bp` 还直接依赖
 | `patches/0026-*.patch` | 为 recovery 创建 sgdisk/libgptf 变体 |
 | `patches/0027-*.patch` | recovery 进入菜单时保持以太网启用，避免关闭已由 init 启动 DHCP 的接口 |
 | `patches/0028-*.patch` | 补齐 vendor init 声明、默认实现及启动环境/属性调用点 |
+| `patches/0029-*.patch` | 将禁用宿主 JVM 动态附加的精确参数传给 Ninja 子进程，避免构建机 profiler 崩溃 |
 | `patches/apply-aosp.sh` | 独立硬件补丁链，保留传感器和 UI Automator 修复；不接入原来的 Pixel 名称改写和按进程属性替换链 |
 | `scripts/prepare-aosp-keys.sh` | 从既有签名库复制完整密钥对，独立设置默认签名路径；缺失时失败，不自动换钥 |
 | `build-aosp.sh` | 源码依赖检查、全新输出目录、AOSP 产品构建、验收后导出，保存 resolved manifest 和 SHA-256 |

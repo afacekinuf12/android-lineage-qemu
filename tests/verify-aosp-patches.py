@@ -12,6 +12,8 @@ import urllib.request
 ROOT = Path(__file__).resolve().parents[1]
 REVISION = "android-16.0.0_r4"
 SERIES = (
+    ("device/virt/virt-common", "0029-virt-common-pass-build-jvm-guard.patch",
+     ("BoardConfigVirtCommon.mk",)),
     ("hardware/interfaces", "0021-sensors-limit-virtio-to-bridged-motion.patch",
      ("sensors/aidl/default/Android.bp", "sensors/aidl/default/include/sensors-impl/Sensors.h")),
     ("frameworks/base", "0022-uiautomator-include-test-base-dependency.patch",
@@ -32,7 +34,9 @@ def upstream_file(url):
     for attempt in range(4):
         try:
             with urllib.request.urlopen(url, timeout=30) as response:
-                return base64.b64decode(response.read(), validate=True)
+                content = response.read()
+                return (base64.b64decode(content, validate=True)
+                        if url.endswith("?format=TEXT") else content)
         except urllib.error.HTTPError as error:
             if error.code not in (429, 500, 502, 503, 504) or attempt == 3:
                 raise
@@ -54,8 +58,12 @@ def main():
                 path = checkout / relative
                 if path.exists():
                     continue  # Preserve earlier patches to this project's files.
-                url = ("https://android.googlesource.com/platform/{}/+/refs/tags/{}/{}"
-                       "?format=TEXT").format(project, REVISION, relative)
+                if project == "device/virt/virt-common":
+                    url = ("https://raw.githubusercontent.com/LineageOS/"
+                           "android_device_virt_virt-common/lineage-23.2/" + relative)
+                else:
+                    url = ("https://android.googlesource.com/platform/{}/+/refs/tags/{}/{}"
+                           "?format=TEXT").format(project, REVISION, relative)
                 data = upstream_file(url)
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(data)
@@ -67,9 +75,13 @@ def main():
         subprocess.run([sys.executable, str(ROOT / "tests/check-motion-registration.py"),
                         str(workspace / "hardware/interfaces")], check=True)
         subprocess.run([sys.executable, str(ROOT / "tests/check-uiautomator-wrapper.py"),
-                        str(workspace / "frameworks/base" / SERIES[1][2][0])], check=True)
+                        str(workspace / "frameworks/base" /
+                            "cmds/uiautomator/cmds/uiautomator/uiautomator.sh")], check=True)
         subprocess.run([sys.executable, str(ROOT / "tests/check-vendor-init-hooks.py"),
                         str(workspace / "system/core")], check=True)
+        subprocess.run([sys.executable, str(ROOT / "tests/check-build-jvm-guard.py"),
+                        str(workspace / "device/virt/virt-common/BoardConfigVirtCommon.mk")],
+                       check=True)
 
 
 if __name__ == "__main__":

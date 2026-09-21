@@ -1,0 +1,17 @@
+diff --git a/BoardConfigVirtCommon.mk b/BoardConfigVirtCommon.mk
+--- a/BoardConfigVirtCommon.mk
++++ b/BoardConfigVirtCommon.mk
+@@ -8,6 +8,13 @@
+ # Inherit from mainline/common
+ include device/mainline/common/BoardConfigMainlineCommon.mk
+ 
++# Preserve only this output-neutral build JVM guard through Ninja's allowlist.
++# The runner's Java processes must not load an incompatible host profiler.
++# Arbitrary JAVA_TOOL_OPTIONS remain subject to the normal environment filter.
++ifeq ($(JAVA_TOOL_OPTIONS),-XX:+DisableAttachMechanism)
++BUILD_BROKEN_NINJA_USES_ENV_VARS += JAVA_TOOL_OPTIONS
++endif
++
+ # Boot manager
+ TARGET_GRUB_BOOT_CONFIGS := $(VIRT_COMMON_PATH)/bootmgr/grub/grub-boot.cfg
+ TARGET_GRUB_INSTALL_CONFIGS := $(VIRT_COMMON_PATH)/bootmgr/grub/grub-install.cfg
