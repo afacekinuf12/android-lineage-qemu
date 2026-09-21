@@ -1,0 +1,66 @@
+diff --git a/init/Android.bp b/init/Android.bp
+--- a/init/Android.bp
++++ b/init/Android.bp
+@@ -229,7 +229,7 @@
+         "init_defaults",
+         "selinux_policy_version",
+     ],
+-    srcs: init_common_sources + init_device_sources,
++    srcs: init_common_sources + init_device_sources + ["vendor_init.cpp"],
+     export_include_dirs: ["."],
+     generated_sources: [
+         "apex-info-list",
+diff --git a/init/property_service.cpp b/init/property_service.cpp
+--- a/init/property_service.cpp
++++ b/init/property_service.cpp
+@@ -74,6 +74,7 @@
+ #include "subcontext.h"
+ #include "system/core/init/property_service.pb.h"
+ #include "util.h"
++#include "vendor_init.h"
+ 
+ static constexpr char APPCOMPAT_OVERRIDE_PROP_FOLDERNAME[] =
+         "/dev/__properties__/appcompat_override";
+@@ -1207,6 +1208,10 @@
+         }
+     }
+ 
++    // Let the selected device initialize hardware-dependent properties before
++    // deriving the final product defaults.
++    vendor_load_properties();
++
+     property_initialize_ro_product_props();
+     property_derive_build_fingerprint();
+     property_initialize_ro_cpu_abilist();
+@@ -1390,6 +1395,8 @@
+     ProcessBootconfig();
+     ProcessKernelCmdline();
+ 
++    vendor_process_bootenv();
++
+     // Propagate the kernel variables to internal variables
+     // used by init as well as the current required properties.
+     ExportKernelBootProps();
+diff --git a/init/vendor_init.h b/init/vendor_init.h
+new file mode 100644
+--- /dev/null
++++ b/init/vendor_init.h
+@@ -0,0 +1,6 @@
++// SPDX-License-Identifier: Apache-2.0
++#pragma once
++
++// Implemented by the configured device library; otherwise the hooks are no-ops.
++void vendor_process_bootenv();
++void vendor_load_properties();
+diff --git a/init/vendor_init.cpp b/init/vendor_init.cpp
+new file mode 100644
+--- /dev/null
++++ b/init/vendor_init.cpp
+@@ -0,0 +1,7 @@
++// SPDX-License-Identifier: Apache-2.0
++#include "vendor_init.h"
++
++// Whole-linking the configured device library lets its strong definitions
++// replace these defaults in normal and recovery init.
++__attribute__((weak)) void vendor_process_bootenv() {}
++__attribute__((weak)) void vendor_load_properties() {}

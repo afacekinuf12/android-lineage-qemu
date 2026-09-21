@@ -33,8 +33,11 @@ bash "$root/scripts/prepare-aosp-keys.sh" "$android_root"
 
 # Never reuse the old Lineage staging directory or a different product's
 # system_ext/product/vendor overlays.
-mkdir -p "$android_root/out"
-build_output=$(mktemp -d "$android_root/out/virtio-aosp.XXXXXXXX")
+output_args=(--source "$android_root" --release "$AOSP_RELEASE_CONFIG")
+if [[ -n "${AOSP_RESUME_OUT_DIR:-}" ]]; then
+  output_args+=(--resume "$AOSP_RESUME_OUT_DIR")
+fi
+build_output=$(python3 "$root/scripts/select-aosp-output.py" "${output_args[@]}")
 # Soong test-package rules require output paths relative to the source root.
 export OUT_DIR
 OUT_DIR=${build_output#"$android_root/"}
@@ -50,7 +53,6 @@ unset LINEAGE_BUILD LINEAGE_VERSION LINEAGE_BUILDTYPE TARGET_PRODUCT TARGET_BUIL
 unset TARGET_RELEASE TARGET_BUILD_APPS OUT_DIR_COMMON_BASE
 
 cd "$android_root"
-repo manifest -r -o "$OUT_DIR/resolved-manifest.xml"
 # Android's envsetup scripts are not nounset-safe.
 set +u
 source build/envsetup.sh

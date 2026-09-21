@@ -18,6 +18,8 @@ SERIES = (
      ("cmds/uiautomator/cmds/uiautomator/uiautomator.sh",)),
     ("system/core", "0024-aosp-init-virtio-boot-and-vendor-hook.patch",
      ("init/devices.cpp", "init/Android.bp")),
+    ("system/core", "0028-aosp-init-complete-vendor-hooks.patch",
+     ("init/Android.bp", "init/property_service.cpp")),
     ("build/soong", "0025-aosp-soong-allow-virtio-mesa-build.patch",
      ("ui/build/androidmk_denylist.go",)),
     ("external/gptfdisk", "0026-aosp-gptfdisk-recovery-variants.patch", ("Android.bp",)),
@@ -49,10 +51,12 @@ def main():
             checkout.mkdir(parents=True, exist_ok=True)
             subprocess.run(["git", "init", "-q", str(checkout)], check=True)
             for relative in files:
+                path = checkout / relative
+                if path.exists():
+                    continue  # Preserve earlier patches to this project's files.
                 url = ("https://android.googlesource.com/platform/{}/+/refs/tags/{}/{}"
                        "?format=TEXT").format(project, REVISION, relative)
                 data = upstream_file(url)
-                path = checkout / relative
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(data)
             subprocess.run(["git", "-C", str(checkout), "apply", "--check",
@@ -64,6 +68,8 @@ def main():
                         str(workspace / "hardware/interfaces")], check=True)
         subprocess.run([sys.executable, str(ROOT / "tests/check-uiautomator-wrapper.py"),
                         str(workspace / "frameworks/base" / SERIES[1][2][0])], check=True)
+        subprocess.run([sys.executable, str(ROOT / "tests/check-vendor-init-hooks.py"),
+                        str(workspace / "system/core")], check=True)
 
 
 if __name__ == "__main__":

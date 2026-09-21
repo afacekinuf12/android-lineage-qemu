@@ -27,7 +27,9 @@ apply_series device/virt/virtio_arm64 \
 apply_series external/mesa 0003-mesa-use-build-environment-python.patch
 apply_series hardware/interfaces 0021-sensors-limit-virtio-to-bridged-motion.patch
 apply_series frameworks/base 0022-uiautomator-include-test-base-dependency.patch
-apply_series system/core 0024-aosp-init-virtio-boot-and-vendor-hook.patch
+apply_series system/core \
+  0024-aosp-init-virtio-boot-and-vendor-hook.patch \
+  0028-aosp-init-complete-vendor-hooks.patch
 apply_series build/soong 0025-aosp-soong-allow-virtio-mesa-build.patch
 apply_series external/gptfdisk 0026-aosp-gptfdisk-recovery-variants.patch
 apply_series bootable/recovery 0027-aosp-recovery-keep-ethernet-up.patch

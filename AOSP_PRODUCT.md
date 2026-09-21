@@ -43,7 +43,15 @@
   `continuous_native_tests` 将绝对路径的主机 JAR 误当作设备安装路径，
   导致 `Path is outside directory`。其上游规则按 `out` 前缀排除主机输出，
   因此入口改用源码树内相对 `OUT_DIR`；诊断记录仍保存绝对路径。
-  保留全新产品输出隔离，91 项主机回归通过，等待实际构建验证。
+  修订 `aa0e940` 已实际通过 Soong 与 Make 分析，进入 Ninja 编译。
+- 2026-09-21 SSH 直接构建 `aa0e940`：
+  GitHub 凭据暂不可用，已将提交归档并校验 SHA-256 后在同一构建机运行。
+  未重新同步源码；编译至 31,011/153,392 时，`init_virt.cpp` 缺少
+  `vendor_init.h`。原 0024 仅连接静态库，AOSP 还缺少声明、默认实现及调用点。
+  新增 0028 补齐启动环境和设备属性 hook；默认 no-op 与设备覆盖实现的
+  编译、链接、执行检查通过，完整补丁链验证和 96 项主机回归通过。
+  新增显式增量恢复入口，仅接受同源码目录、产品、variant、release 和
+  resolved manifest 的已登记输出；默认仍创建新输出。实际恢复结果待验证。
 - [完整构建任务 35484039288](https://github.com/afacekinuf12/android-lineage-qemu/actions/runs/35484039288)：
   构建修订为 `ad87d88`，包含 recovery 网卡修复；源码预检和 lunch 已通过。
   实际配置暴露 AOSP 未提供设备树的内核页大小默认值，查找目录缺少 `4k`；
@@ -87,6 +95,7 @@ Lineage `frameworks/base/services/Android.bp` 还直接依赖
 | `patches/0025-*.patch` | 允许 VirtIO 使用的 Mesa Android.mk，范围仅该路径 |
 | `patches/0026-*.patch` | 为 recovery 创建 sgdisk/libgptf 变体 |
 | `patches/0027-*.patch` | recovery 进入菜单时保持以太网启用，避免关闭已由 init 启动 DHCP 的接口 |
+| `patches/0028-*.patch` | 补齐 vendor init 声明、默认实现及启动环境/属性调用点 |
 | `patches/apply-aosp.sh` | 独立硬件补丁链，保留传感器和 UI Automator 修复；不接入原来的 Pixel 名称改写和按进程属性替换链 |
 | `scripts/prepare-aosp-keys.sh` | 从既有签名库复制完整密钥对，独立设置默认签名路径；缺失时失败，不自动换钥 |
 | `build-aosp.sh` | 源码依赖检查、全新输出目录、AOSP 产品构建、验收后导出，保存 resolved manifest 和 SHA-256 |
@@ -133,8 +142,11 @@ BUILD_FLAVOR=aosp BUILD_TARGET=arm64only \
 recovery 地址展示、实际 DHCP、ADB 和 fastbootd 连接仍需启动验证。
 当前脚本仅支持 ARM64。
 
-每次构建使用新的 `out/virtio-aosp.*`，通过后导出到本仓库被 Git 忽略的 `aosp-dist/build.*`。
-不会复用旧 `system_ext`、`product` 或旧 VM ZIP。失败的输出保留以便诊断。
+默认使用新的 `out/virtio-aosp.*`，通过后导出到本仓库被 Git 忽略的 `aosp-dist/build.*`。
+同一次 AOSP 产品构建失败后，可显式设置 `AOSP_RESUME_OUT_DIR` 继续编译。
+`select-aosp-output.py` 检查输出身份记录和 manifest；旧 Lineage、其他产品、
+其他源码/release 或未登记的目录均被拒绝。失败输出保留供诊断和增量恢复。
+只有当前构建成功并通过产物检查后才能导出。
 AOSP 会按自己的规则生成 `dev-keys` 等标签；私有签名不自动等于官方认证或官方 release。
 
 ## 本次验证结果
