@@ -75,6 +75,75 @@ class AospProductTests(unittest.TestCase):
         self.assertEqual("not_run", result["cts_verdict"])
         self.assertEqual("not_run", result["riskdetector_verdict"])
 
+    def prepare_derived_fingerprint(self):
+        path = self.root / "system/build.prop"
+        path.write_text("\n".join(line for line in path.read_text().splitlines()
+                                  if not line.startswith("ro.build.fingerprint=")) + "\n")
+        with path.open("a") as stream:
+            stream.write("ro.build.version.release_or_codename=16\n")
+        for partition in ("system", "vendor", "product"):
+            with (self.root / partition / "build.prop").open("a") as stream:
+                stream.write("\nro.product.{}.brand=VirtIO\n".format(partition))
+                stream.write("ro.product.{}.name=virtio_aosp_arm64\n".format(partition))
+                stream.write("ro.product.{}.device=virtio_arm64only\n".format(partition))
+        return path
+
+    def test_init_derived_fingerprint_validates_real_constituent_fields(self):
+        self.prepare_derived_fingerprint()
+        result = self.audit()
+        self.assertTrue(result["accepted"], result["errors"])
+        contract = AUDIT.CONTRACT.verify(self.root, "virtio_aosp_arm64")
+        self.assertEqual(self.fp, contract["derived_build_fingerprint"])
+        self.assertEqual("not_run", result["riskdetector_verdict"])
+
+    def test_derived_fingerprint_requires_every_build_field(self):
+        path = self.prepare_derived_fingerprint()
+        original = path.read_text()
+        for key in ("ro.build.id", "ro.build.version.incremental", "ro.build.tags",
+                    "ro.build.type", "ro.build.version.release_or_codename"):
+            with self.subTest(key=key):
+                path.write_text("\n".join(line for line in original.splitlines()
+                                          if not line.startswith(key + "=")) + "\n")
+                self.assertFalse(self.audit()["accepted"])
+        path.write_text(original)
+
+    def test_derived_fingerprint_honors_init_product_priority_and_explicit_identity(self):
+        system = self.prepare_derived_fingerprint()
+        product = self.root / "product/build.prop"
+        original = product.read_text()
+        product.write_text(original.replace("ro.product.product.name=virtio_aosp_arm64",
+                                            "ro.product.product.name=other"))
+        self.assertFalse(self.audit()["accepted"])
+        with system.open("a") as stream:
+            stream.write("ro.product.name=virtio_aosp_arm64\n")
+        self.assertTrue(self.audit()["accepted"])
+
+    def test_explicit_invalid_fingerprint_is_not_replaced_by_derivation(self):
+        system = self.prepare_derived_fingerprint()
+        original = system.read_text()
+        for value in ("", "malformed", self.fp.replace("/ACTUAL/", "/OTHER/")):
+            with self.subTest(value=value):
+                system.write_text(original + "ro.build.fingerprint=" + value + "\n")
+                self.assertFalse(self.audit()["accepted"])
+
+    def test_stale_vendor_fingerprint_still_fails_with_derived_global_fingerprint(self):
+        self.prepare_derived_fingerprint()
+        vendor = self.root / "vendor/build.prop"
+        vendor.write_text(vendor.read_text().replace("20260917", "20260916"))
+        self.assertFalse(self.audit()["accepted"])
+
+    def test_derived_fingerprint_rejects_conflicting_global_properties(self):
+        self.prepare_derived_fingerprint()
+        with (self.root / "product/build.prop").open("a") as stream:
+            stream.write("ro.build.id=OTHER\n")
+        with self.assertRaisesRegex(ValueError, "conflicting staged identity"):
+            self.audit()
+
+    def test_distribution_apex_is_rejected(self):
+        self.write("vendor/apex/org.lineageos.device.gralloc.minigbm_upstream.apex",
+                   "fixture")
+        self.assertTrue(any("distribution artifact" in e for e in self.audit()["errors"]))
+
     def test_old_property_in_other_partition_rejected(self):
         for value in ("ro.lineage.version=23.2", "ro.build.description=LineageOS",
                       "ro.build.flavor=lineage_virtio_arm64only-user"):

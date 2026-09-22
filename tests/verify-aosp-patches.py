@@ -26,6 +26,8 @@ SERIES = (
      ("init/Android.bp", "init/property_service.cpp")),
     ("build/soong", "0025-aosp-soong-allow-virtio-mesa-build.patch",
      ("ui/build/androidmk_denylist.go",)),
+    ("build/make", "0031-aosp-track-generated-vendor-build-metadata.patch",
+     ("core/sysprop.mk",)),
     ("external/gptfdisk", "0026-aosp-gptfdisk-recovery-variants.patch", ("Android.bp",)),
     ("bootable/recovery", "0027-aosp-recovery-keep-ethernet-up.patch",
      ("recovery_ui/ethernet_device.cpp",)),
@@ -84,6 +86,8 @@ def main():
         subprocess.run([sys.executable, str(ROOT / "tests/check-build-jvm-guard.py"),
                         str(workspace / "device/virt/virt-common/BoardConfigVirtCommon.mk")],
                        check=True)
+        subprocess.run([sys.executable, str(ROOT / "tests/check-aosp-sysprop-deps.py"),
+                        str(workspace / "build/make/core/sysprop.mk")], check=True)
 
 
 if __name__ == "__main__":

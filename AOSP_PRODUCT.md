@@ -7,7 +7,8 @@
 ## 当前状态
 
 已实现独立产品与构建入口、组件残留验收和若干 AOSP/VirtIO 适配补丁。
-**尚未完成完整 Android 构建、启动或 RiskDetector 复测，LineageOS 验收项仍未关闭。**
+**Android 编译及 UTM/OTA 打包已完成，交付前检查尚未通过；启动和 RiskDetector
+复测尚未执行，LineageOS 验收项仍未关闭。**
 新入口使用另行准备的 AOSP 平台源码，不能把旧 Lineage framework 切换一个产品名后直接当作 AOSP。
 
 ### 2026-09-20 构建执行
@@ -81,6 +82,18 @@
   保留完整 recovery 安装流程。实际 59,219,968 字节 recovery 的生成结果逐字节
   一致，AOSP 原生校验器验证安装脚本中的目标和镜像哈希通过。
   三种 Make 分支、补丁应用和 99 项回归通过；完整镜像与启动仍待验证。
+- SSH 增量构建 `36d8858`：
+  Android 编译和 UTM/OTA 打包成功，生成约 854 MiB 的 UTM 包和 749 MiB 的 OTA。
+  随后的产物检查拒绝交付：vendor 仍保留上一天的构建号，图形服务仍安装
+  `org.lineageos.device.gralloc.minigbm_upstream.apex`，且检查器要求磁盘上存在
+  AOSP 实际会在启动时生成的 `ro.build.fingerprint`。
+  0031 为 AOSP 的 Make 属性规则补齐 fingerprint、build number 和时间文件依赖；
+  实际 GNU Make 复现原规则未重建，修改后分别更新三项输入均能重建。
+  产品改用图形项目已有的非 APEX 安装方式，实际 Make 验证 allocator 与 mapper
+  均保留而发行版 APEX 不再安装。检查器按 AOSP init 的属性优先级推导总指纹，
+  缺失字段、显式坏指纹、属性冲突和陈旧 vendor 仍拒绝；实际 staging 的推导结果
+  匹配生成指纹，但仍正确拒绝陈旧 vendor。106 项回归通过；
+  修复后完整产物检查和运行时验证待执行。
 - [完整构建任务 35484039288](https://github.com/afacekinuf12/android-lineage-qemu/actions/runs/35484039288)：
   构建修订为 `ad87d88`，包含 recovery 网卡修复；源码预检和 lunch 已通过。
   实际配置暴露 AOSP 未提供设备树的内核页大小默认值，查找目录缺少 `4k`；

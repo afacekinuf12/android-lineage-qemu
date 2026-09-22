@@ -1,0 +1,16 @@
+diff --git a/core/sysprop.mk b/core/sysprop.mk
+--- a/core/sysprop.mk
++++ b/core/sysprop.mk
+@@ -116,6 +116,12 @@
+     $(eval _option := --allow-dup)\
+ )
+ 
++# Match Soong's metadata dependencies when resuming the independent product.
++# Otherwise Make may retain yesterday's vendor fingerprint and build number.
++ifeq ($(TARGET_PRODUCT),virtio_aosp_arm64)
++$(2): $(BUILD_FINGERPRINT_FILE) $(BUILD_NUMBER_FILE) $(BUILD_DATETIME_FILE)
++endif
++
+ $(2): $(POST_PROCESS_PROPS) $(INTERNAL_BUILD_ID_MAKEFILE) $(3) $(6) $(BUILT_KERNEL_VERSION_FILE_FOR_UFFD_GC)
+ 	$(hide) echo Building $$@
+ 	$(hide) mkdir -p $$(dir $$@)

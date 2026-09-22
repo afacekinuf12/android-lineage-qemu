@@ -40,6 +40,41 @@ def properties(path):
     return result
 
 
+def derived_aosp_fingerprint(staged):
+    """Model init's product-property selection for the fixed 4 KB AOSP product."""
+    merged = {}
+    for _, _, props in staged:
+        for key, value in props.items():
+            if not key.startswith(("ro.product.", "ro.build.")):
+                continue
+            if key in merged and merged[key] != value:
+                raise ValueError("conflicting staged identity property: " + key)
+            merged[key] = value
+    if merged.get("ro.product.build.16k_page.enabled", "false") not in ("false", "0"):
+        raise ValueError("derived fingerprint requires the selected 4 KB product")
+    default_sources = ["product", "odm", "vendor", "system_ext", "system"]
+    sources = merged.get("ro.product.property_source_order", "").split(",")
+    if not sources or any(source not in default_sources for source in sources):
+        sources = default_sources
+    identity = []
+    for field in ("brand", "name", "device"):
+        value = merged.get("ro.product." + field, "")
+        if not value:
+            value = next((merged.get("ro.product." + source + "." + field)
+                          for source in sources
+                          if merged.get("ro.product." + source + "." + field)), "")
+        if not value:
+            return ""
+        identity.append(value)
+    build = [merged.get(key, "") for key in (
+        "ro.build.version.release_or_codename", "ro.build.id", "ro.build.version.incremental",
+        "ro.build.type", "ro.build.tags",
+    )]
+    if not all(build):
+        return ""
+    return "{}/{}/{}:{}/{}/{}:{}/{}".format(*(identity + build))
+
+
 def verify(root, target="lineage_virtio_arm64only"):
     root = Path(root)
     if not re.fullmatch(r"[a-zA-Z0-9_]+", target):
@@ -49,6 +84,7 @@ def verify(root, target="lineage_virtio_arm64only"):
     if not FINGERPRINT.fullmatch(canonical):
         raise ValueError("invalid generated build fingerprint: " + str(canonical_file))
     errors, checked = [], []
+    staged = []
     global_tuples = []
     for partition in PARTITIONS:
         candidates = (root / partition / "build.prop", root / partition / "etc/build.prop")
@@ -56,34 +92,42 @@ def verify(root, target="lineage_virtio_arm64only"):
         if not paths and (partition in ("system", "vendor") or (root / partition).is_dir()):
             errors.append(partition + ": staged build.prop missing")
         for path in paths:
-            props = properties(path)
-            prefixes = ["ro." + partition + ".build"]
-            if partition == "system" or "ro.build.fingerprint" in props:
-                prefixes.append("ro.build")
-            for prefix in prefixes:
-                label = str(path.relative_to(root)) + ":" + prefix
-                fp = props.get(prefix + ".fingerprint", "")
-                match = FINGERPRINT.fullmatch(fp)
-                if not match:
-                    errors.append(label + ": missing or malformed fingerprint")
-                    continue
-                if fp != canonical:
-                    errors.append(label + ": does not match generated build fingerprint")
-                for token, suffix in (("id", ".id"), ("incremental", ".version.incremental"),
-                                      ("type", ".type"), ("tags", ".tags")):
-                    key = prefix + suffix
-                    if props.get(key) != match[token]:
-                        errors.append(label + ": fingerprint token differs from " + key)
-                # Preview fingerprints may use a codename rather than last stable release.
-                release = props.get(prefix + ".version.release_or_codename",
-                                    props.get(prefix + ".version.release"))
-                if release != match["release"]:
-                    errors.append(label + ": fingerprint release/codename differs")
-                if prefix == "ro.build":
-                    global_tuples.append((props.get("ro.build.id"),
-                                          props.get("ro.build.version.incremental"),
-                                          props.get("ro.build.version.security_patch")))
-                checked.append(label)
+            staged.append((partition, path, properties(path)))
+    derived = None
+    for partition, path, props in staged:
+        prefixes = ["ro." + partition + ".build"]
+        if partition == "system" or "ro.build.fingerprint" in props:
+            prefixes.append("ro.build")
+        for prefix in prefixes:
+            label = str(path.relative_to(root)) + ":" + prefix
+            fp = props.get(prefix + ".fingerprint", "")
+            if (target == "virtio_aosp_arm64" and prefix == "ro.build" and
+                    partition == "system" and "ro.build.fingerprint" not in props):
+                # AOSP init derives this property on boot. Validate its
+                # actual input fields rather than requiring it on disk.
+                derived = derived_aosp_fingerprint(staged)
+                fp = derived
+            match = FINGERPRINT.fullmatch(fp)
+            if not match:
+                errors.append(label + ": missing or malformed fingerprint")
+                continue
+            if fp != canonical:
+                errors.append(label + ": does not match generated build fingerprint")
+            for token, suffix in (("id", ".id"), ("incremental", ".version.incremental"),
+                                  ("type", ".type"), ("tags", ".tags")):
+                key = prefix + suffix
+                if props.get(key) != match[token]:
+                    errors.append(label + ": fingerprint token differs from " + key)
+            # Preview fingerprints may use a codename rather than last stable release.
+            release = props.get(prefix + ".version.release_or_codename",
+                                props.get(prefix + ".version.release"))
+            if release != match["release"]:
+                errors.append(label + ": fingerprint release/codename differs")
+            if prefix == "ro.build":
+                global_tuples.append((props.get("ro.build.id"),
+                                      props.get("ro.build.version.incremental"),
+                                      props.get("ro.build.version.security_patch")))
+            checked.append(label)
     if len(set(global_tuples)) > 1:
         errors.append("global build ID/incremental/security patch differs across partitions")
 
@@ -105,6 +149,7 @@ def verify(root, target="lineage_virtio_arm64only"):
     for feature in sorted(declared - SENSOR_FEATURES):
         errors.append("sensor outside the VirtIO motion profile: " + feature)
     return {"accepted": not errors, "checked_builds": checked,
+            "derived_build_fingerprint": derived,
             "sensor_features": sorted(declared - removed), "errors": errors,
             "scope": "staged metadata and XML only; HAL runtime/events not evaluated"}
 

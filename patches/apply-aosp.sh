@@ -33,5 +33,6 @@ apply_series system/core \
   0024-aosp-init-virtio-boot-and-vendor-hook.patch \
   0028-aosp-init-complete-vendor-hooks.patch
 apply_series build/soong 0025-aosp-soong-allow-virtio-mesa-build.patch
+apply_series build/make 0031-aosp-track-generated-vendor-build-metadata.patch
 apply_series external/gptfdisk 0026-aosp-gptfdisk-recovery-variants.patch
 apply_series bootable/recovery 0027-aosp-recovery-keep-ethernet-up.patch

@@ -226,6 +226,7 @@ def verify_staged(root, aapt2, inspect=inspect_apk):
             errors.append("duplicate installed package: " + package)
     return {"accepted": not errors, "errors": errors,
             "checked_apks": checked_apks, "checked_jars": checked_jars,
+            "derived_build_fingerprint": contract.get("derived_build_fingerprint"),
             "packages": sorted(packages),
             "scope": "staged properties, XML, APK metadata and APK/JAR DEX; "
                      "source preflight and runtime validation are also required",
