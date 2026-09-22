@@ -21,7 +21,8 @@ apply_series device/virt/virt-common \
   0006-virt-common-declare-bridged-gps.patch \
   0008-virt-common-align-declared-hardware.patch \
   0023-virt-common-scope-lineage-settings-overlay.patch \
-  0029-virt-common-pass-build-jvm-guard.patch
+  0029-virt-common-pass-build-jvm-guard.patch \
+  0030-virt-common-package-full-recovery-for-aosp.patch
 apply_series device/virt/virtio_arm64 \
   0002-virtio-arm64-expand-utm-hardware.patch \
   0005-virtio-arm64-use-compatible-utm-display.patch

@@ -1,0 +1,18 @@
+diff --git a/BoardConfigVirtCommon.mk b/BoardConfigVirtCommon.mk
+--- a/BoardConfigVirtCommon.mk
++++ b/BoardConfigVirtCommon.mk
+@@ -160,6 +160,14 @@
+ TARGET_NO_RECOVERY := true
+ endif
+ 
++# imgdiff's recovery resource bonus requires a gzip ramdisk. This product
++# uses LZ4; preserve recovery installation with AOSP's full-image path.
++ifeq ($(TARGET_PRODUCT),virtio_aosp_arm64)
++ifneq ($(AB_OTA_UPDATER),true)
++BOARD_USES_FULL_RECOVERY_IMAGE := true
++endif
++endif
++
+ # Releasetools
+ TARGET_RELEASETOOLS_EXTENSIONS := $(VIRT_COMMON_PATH)
+ 

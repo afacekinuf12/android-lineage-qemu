@@ -14,6 +14,8 @@ REVISION = "android-16.0.0_r4"
 SERIES = (
     ("device/virt/virt-common", "0029-virt-common-pass-build-jvm-guard.patch",
      ("BoardConfigVirtCommon.mk",)),
+    ("device/virt/virt-common", "0030-virt-common-package-full-recovery-for-aosp.patch",
+     ("BoardConfigVirtCommon.mk",)),
     ("hardware/interfaces", "0021-sensors-limit-virtio-to-bridged-motion.patch",
      ("sensors/aidl/default/Android.bp", "sensors/aidl/default/include/sensors-impl/Sensors.h")),
     ("frameworks/base", "0022-uiautomator-include-test-base-dependency.patch",

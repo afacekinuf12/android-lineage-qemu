@@ -72,6 +72,15 @@
   已有私钥和证书的一致性。构建机实际 `insertkeys` 命令通过，生成策略的
   六个签名均匹配既有证书；99 项回归及构建机整组补丁验证通过。
   新回归覆盖首次准备、旧输出恢复、重复准备及冲突拒绝。
+- SSH 增量构建 `63add10`：
+  签名策略与 SystemUI 签名已通过。完成 5,672/8,874 项后，target-files 打包
+  在生成 recovery 差分时失败：`imgdiff -b` 报告 `Failed to set bonus data`，
+  随后的 `make_recovery_patch` 尝试写入空补丁而抛出 `TypeError`。
+  VirtIO 的 ramdisk 使用 LZ4，不能使用该 gzip recovery 资源补丁流程。
+  0030 仅为独立 AOSP 的非 A/B 产品启用 `BOARD_USES_FULL_RECOVERY_IMAGE`，
+  保留完整 recovery 安装流程。实际 59,219,968 字节 recovery 的生成结果逐字节
+  一致，AOSP 原生校验器验证安装脚本中的目标和镜像哈希通过。
+  三种 Make 分支、补丁应用和 99 项回归通过；完整镜像与启动仍待验证。
 - [完整构建任务 35484039288](https://github.com/afacekinuf12/android-lineage-qemu/actions/runs/35484039288)：
   构建修订为 `ad87d88`，包含 recovery 网卡修复；源码预检和 lunch 已通过。
   实际配置暴露 AOSP 未提供设备树的内核页大小默认值，查找目录缺少 `4k`；
