@@ -276,5 +276,75 @@ class AospBuildTests(unittest.TestCase):
             self.assertFalse((source / "vendor").exists())
 
 
+class AospSigningTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.source = self.root / "android"
+        self.security = self.source / "build/make/target/product/security"
+        self.security.mkdir(parents=True)
+        self.store = self.root / "keys"
+        self.store.mkdir()
+        for name in ("releasekey", "platform", "shared", "media", "networkstack",
+                     "sdk_sandbox", "bluetooth", "nfc"):
+            for suffix in ("pk8", "x509.pem"):
+                (self.store / (name + "." + suffix)).write_bytes(
+                    ("fixture-" + name + "." + suffix).encode())
+        self.destination = self.source / "vendor/virtio_aosp/keys"
+
+    def provision(self):
+        return subprocess.run(
+            ["bash", str(ROOT / "scripts/prepare-aosp-keys.sh"), str(self.source)],
+            capture_output=True, text=True,
+            env=dict(os.environ, RELEASE_KEYS_DIR=str(self.store)), timeout=5)
+
+    def snapshot(self):
+        return {str(p.relative_to(self.source)): p.read_bytes()
+                for p in self.source.rglob("*") if p.is_file()}
+
+    def test_sepolicy_release_alias_uses_same_existing_signing_pair(self):
+        result = self.provision()
+        self.assertEqual(0, result.returncode, result.stderr)
+        for suffix, mode in (("pk8", 0o600), ("x509.pem", 0o644)):
+            expected = (self.store / ("releasekey." + suffix)).read_bytes()
+            for directory, name in ((self.destination, "testkey"),
+                                    (self.destination, "releasekey"),
+                                    (self.security, "testkey")):
+                path = directory / (name + "." + suffix)
+                self.assertEqual(expected, path.read_bytes())
+                self.assertEqual(mode, path.stat().st_mode & 0o777)
+        before = self.snapshot()
+        result = self.provision()
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(before, self.snapshot())
+
+    def test_existing_build_without_alias_can_resume(self):
+        self.assertEqual(0, self.provision().returncode)
+        for suffix in ("pk8", "x509.pem"):
+            (self.destination / ("testkey." + suffix)).unlink()
+        before = self.snapshot()
+        result = self.provision()
+        self.assertEqual(0, result.returncode, result.stderr)
+        after = self.snapshot()
+        self.assertEqual(before, {p: after[p] for p in before})
+        self.assertEqual(2, len(after) - len(before))
+
+    def test_conflicting_identity_fails_before_any_writes(self):
+        self.assertEqual(0, self.provision().returncode)
+        for name in ("testkey", "releasekey", "platform"):
+            for suffix in ("pk8", "x509.pem"):
+                with self.subTest(name=name, suffix=suffix):
+                    path = self.destination / (name + "." + suffix)
+                    original = path.read_bytes()
+                    path.write_bytes(b"conflicting-identity")
+                    before = self.snapshot()
+                    result = self.provision()
+                    self.assertEqual(2, result.returncode)
+                    self.assertIn("Refusing to change", result.stderr)
+                    self.assertEqual(before, self.snapshot())
+                    path.write_bytes(original)
+
+
 if __name__ == "__main__":
     unittest.main()

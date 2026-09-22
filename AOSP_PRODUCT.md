@@ -61,6 +61,17 @@
   新增 0029，只允许该精确参数经过设备的 Ninja 环境白名单，
   其他 Java 参数仍按上游规则过滤。96 项回归、完整 AOSP 补丁链和四种
   Make 参数传递检查通过；失败日志与 JVM 崩溃报告已归档，等待增量重跑验证。
+- SSH 增量构建 `437ee7a`：
+  原先因 JVM 崩溃失败的 15 个目标均已重新生成，包括 SystemUI 与 DocumentsUI；
+  实际 Java 进程已携带禁用附加的参数。构建在 2026-09-21 04:16 UTC
+  完成 20,894/29,502 项后，因生成 `plat_mac_permissions.xml` 时缺少
+  `vendor/virtio_aosp/keys/testkey.x509.pem` 停止，未产出交付镜像。
+  AOSP 的 `keys.conf` 在默认签名目录固定以 `testkey` 名称解析 `@RELEASE`，
+  原准备脚本只在平台 security 目录提供此名称。
+  已在独立产品目录补齐同一套既有 releasekey 的兼容名称，并在写入前检查
+  已有私钥和证书的一致性。构建机实际 `insertkeys` 命令通过，生成策略的
+  六个签名均匹配既有证书；99 项回归及构建机整组补丁验证通过。
+  新回归覆盖首次准备、旧输出恢复、重复准备及冲突拒绝。
 - [完整构建任务 35484039288](https://github.com/afacekinuf12/android-lineage-qemu/actions/runs/35484039288)：
   构建修订为 `ad87d88`，包含 recovery 网卡修复；源码预检和 lunch 已通过。
   实际配置暴露 AOSP 未提供设备树的内核页大小默认值，查找目录缺少 `4k`；
