@@ -68,6 +68,14 @@ for module in btusb cfg80211 virt_wifi; do
   [[ -s "$kernel_dir/$module.ko" ]] ||
     fail "Missing selected kernel module: $kernel_dir/$module.ko"
 done
+# A resumed build can change the date in the UTM filename. Preserve previous
+# archives outside the export directory and let Ninja recreate the current one.
+shopt -s nullglob
+previous_utm=("$OUT_DIR"/target/product/virtio_arm64only/VirtualMachine/UTM/UTM-VM*.zip)
+if [[ ${#previous_utm[@]} -gt 0 ]]; then
+  archive_dir=$(mktemp -d "$build_output/previous-utm.XXXXXXXX")
+  mv "${previous_utm[@]}" "$archive_dir/"
+fi
 m -j"${BUILD_JOBS:-8}" aapt2 vm-utm-zip otapackage
 set -u
 
