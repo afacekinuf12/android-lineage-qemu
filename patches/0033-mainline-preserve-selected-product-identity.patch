@@ -1,0 +1,40 @@
+diff --git a/libraries/libinit/Android.bp b/libraries/libinit/Android.bp
+--- a/libraries/libinit/Android.bp
++++ b/libraries/libinit/Android.bp
+@@ -38,6 +38,9 @@ cc_library_static {
+         false: [],
+         default: ["-DSET_DALVIK_HEAP"],
++    }) + select(soong_config_variable("mainline_common_libinit", "use_dmi_product_identity"), {
++        false: ["-DPRESERVE_DMI_PRODUCT_IDENTITY"],
++        default: [],
+     }),
+     whole_static_libs: ["libbase"],
+     export_include_dirs: ["include"],
+     recovery_available: true,
+diff --git a/libraries/libinit/libinit_set_properties.cpp b/libraries/libinit/libinit_set_properties.cpp
+--- a/libraries/libinit/libinit_set_properties.cpp
++++ b/libraries/libinit/libinit_set_properties.cpp
+@@ -21,11 +21,13 @@ static const std::unordered_map<std::string, std::string> kDmiIdToPropertyMap = {
+         {"product_serial", "ro.serialno"},
+ };
+ 
++#ifndef PRESERVE_DMI_PRODUCT_IDENTITY
+ static const std::unordered_map<std::string, std::string> kDmiIdToRoBuildPropMap = {
+         {"chassis_vendor", "brand"},
+         {"product_name", "model"},
+         {"sys_vendor", "manufacturer"},
+ };
++#endif
+ 
+ void set_properties_from_devicetree() {
+     std::string dt_model;
+@@ -62,7 +64,9 @@ void set_properties_from_dmi_id() {
+         set_prop_from_file(prop, kDmiIdPath + file);
+     }
+ 
++#ifndef PRESERVE_DMI_PRODUCT_IDENTITY
+     for (const auto& [file, ro_build_prop] : kDmiIdToRoBuildPropMap) {
+         set_ro_build_prop_from_file(ro_build_prop, kDmiIdPath + file, true);
+     }
++#endif
+ }

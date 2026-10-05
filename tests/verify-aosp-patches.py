@@ -16,6 +16,10 @@ SERIES = (
      ("BoardConfigVirtCommon.mk",)),
     ("device/virt/virt-common", "0030-virt-common-package-full-recovery-for-aosp.patch",
      ("BoardConfigVirtCommon.mk",)),
+    ("device/mainline/common", "0033-mainline-preserve-selected-product-identity.patch",
+     ("libraries/libinit/Android.bp", "libraries/libinit/libinit_set_properties.cpp",
+      "libraries/libinit/include/libinit_set_properties.h",
+      "libraries/libinit/include/libinit_utils.h")),
     ("hardware/interfaces", "0021-sensors-limit-virtio-to-bridged-motion.patch",
      ("sensors/aidl/default/Android.bp", "sensors/aidl/default/include/sensors-impl/Sensors.h")),
     ("frameworks/base", "0022-uiautomator-include-test-base-dependency.patch",
@@ -67,6 +71,9 @@ def main():
                 if project == "device/virt/virt-common":
                     url = ("https://raw.githubusercontent.com/LineageOS/"
                            "android_device_virt_virt-common/lineage-23.2/" + relative)
+                elif project == "device/mainline/common":
+                    url = ("https://raw.githubusercontent.com/LineageOS/"
+                           "android_device_mainline_common/lineage-23.2/" + relative)
                 else:
                     url = ("https://android.googlesource.com/platform/{}/+/refs/tags/{}/{}"
                            "?format=TEXT").format(project, REVISION, relative)
@@ -90,6 +97,8 @@ def main():
                        check=True)
         subprocess.run([sys.executable, str(ROOT / "tests/check-aosp-sysprop-deps.py"),
                         str(workspace / "build/make/core/sysprop.mk")], check=True)
+        subprocess.run([sys.executable, str(ROOT / "tests/check-dmi-product-identity.py"),
+                        str(workspace / "device/mainline/common")], check=True)
 
 
 if __name__ == "__main__":

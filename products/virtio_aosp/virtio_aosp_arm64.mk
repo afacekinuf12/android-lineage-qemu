@@ -23,6 +23,10 @@ PRODUCT_BRAND := VirtIO
 PRODUCT_MANUFACTURER := VirtIO
 PRODUCT_MODEL := VirtIO ARM64
 
+# Keep the selected product identity consistent with the generated OTA metadata.
+# DMI still supplies bootloader and serial information from the actual VM.
+$(call soong_config_set_bool,mainline_common_libinit,use_dmi_product_identity,false)
+
 # Private keys must be explicitly provisioned for this product. Do not inherit
 # vendor/lineage/config/common.mk just to obtain its certificate settings.
 ifeq ($(wildcard vendor/virtio_aosp/keys/releasekey.x509.pem),)
