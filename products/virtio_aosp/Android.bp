@@ -1,0 +1,5 @@
+// Use the same provisioned certificate as the product's @BLUETOOTH seinfo rule.
+android_app_certificate {
+    name: "virtio_aosp_bluetooth_certificate",
+    certificate: "keys/bluetooth",
+}

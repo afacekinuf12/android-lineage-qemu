@@ -24,6 +24,12 @@ Shell 可为大屏应用窗口控件提供 DesktopMode 对象，但 listener man
 蓝牙进程另有 SELinux 上下文错误，早期 SurfaceFlinger 有一次 EGL 加载失败，
 尚不能宣称所有启动和功能问题均已解决。
 
+生成的 Bluetooth APK 证书与产品 `seinfo=bluetooth` 的证书不一致：
+APK 仍使用模块内置证书，修改默认系统签名路径不会覆盖该模块。
+产品新增专用 certificate 模块，并通过 `PRODUCT_CERTIFICATE_OVERRIDES`
+使用既有 `keys/bluetooth`，与 SELinux 策略对齐。源码配置已修正，
+实际重签名及运行时蓝牙进程验证仍待完成。
+
 ### 2026-09-20 构建执行
 
 已启用 GitHub 自托管 Linux 构建机：32 核、约 128 GB 内存，

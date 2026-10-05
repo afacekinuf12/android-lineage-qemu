@@ -29,6 +29,8 @@ install -m 644 "$root/products/virtio_aosp/AndroidProducts.mk" \
   "$android_root/vendor/virtio_aosp/AndroidProducts.mk"
 install -m 644 "$root/products/virtio_aosp/virtio_aosp_arm64.mk" \
   "$android_root/vendor/virtio_aosp/virtio_aosp_arm64.mk"
+install -m 644 "$root/products/virtio_aosp/Android.bp" \
+  "$android_root/vendor/virtio_aosp/Android.bp"
 bash "$root/scripts/prepare-aosp-keys.sh" "$android_root"
 
 # Never reuse the old Lineage staging directory or a different product's

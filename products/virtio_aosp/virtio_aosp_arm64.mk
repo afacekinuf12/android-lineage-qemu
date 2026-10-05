@@ -30,6 +30,10 @@ $(error Provision vendor/virtio_aosp/keys using scripts/prepare-aosp-keys.sh)
 endif
 PRODUCT_DEFAULT_DEV_CERTIFICATE := vendor/virtio_aosp/keys/releasekey
 
+# The Bluetooth module has its own certificate module, so changing the default
+# app certificate does not re-sign its APK. Match the @BLUETOOTH policy key.
+PRODUCT_CERTIFICATE_OVERRIDES += Bluetooth:virtio_aosp_bluetooth_certificate
+
 # Fingerprint, build ID, incremental, release and tags remain build-generated.
 # A newly installed AOSP product must enforce its own privileged-app allowlist.
 PRODUCT_PRODUCT_PROPERTIES += ro.control_privapp_permissions=enforce
