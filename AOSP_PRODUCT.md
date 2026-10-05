@@ -7,9 +7,22 @@
 ## 当前状态
 
 已实现独立产品与构建入口、组件残留验收和若干 AOSP/VirtIO 适配补丁。
-**Android 编译及 UTM/OTA 打包已完成，交付前检查尚未通过；启动和 RiskDetector
-复测尚未执行，LineageOS 验收项仍未关闭。**
+**`5194619` 的编译、打包和交付检查已通过，但 VM 启动验收失败；
+已捕获 SystemUI 启动崩溃，修复后的实机验证待完成，RiskDetector 尚未复测。**
 新入口使用另行准备的 AOSP 平台源码，不能把旧 Lineage framework 切换一个产品名后直接当作 AOSP。
+
+### 2026-10-05 启动诊断
+
+同一 ARM64/HVF VM 的串口和 Android crash buffer 确认：本次内核持续运行，
+SystemUI 在 `DesktopFirstRepository` 构造时反复抛出
+`UnsupportedOperationException: DesktopFirstListenerManager is not available on this device`，
+导致界面停在 `Phone is starting...`。一次采样记录 438 次同类崩溃。
+Shell 可为大屏应用窗口控件提供 DesktopMode 对象，但 listener manager 仅在
+`canEnterDesktopMode && ENABLE_DESKTOP_FIRST_LISTENER` 时创建。
+0032 使 SystemUI 注册逻辑使用相同条件，避免访问不存在的可选组件；
+实际 Kotlin 源码编译与 8 种可用性组合通过，106 项既有回归通过。
+蓝牙进程另有 SELinux 上下文错误，早期 SurfaceFlinger 有一次 EGL 加载失败，
+尚不能宣称所有启动和功能问题均已解决。
 
 ### 2026-09-20 构建执行
 

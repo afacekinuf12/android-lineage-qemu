@@ -20,6 +20,8 @@ SERIES = (
      ("sensors/aidl/default/Android.bp", "sensors/aidl/default/include/sensors-impl/Sensors.h")),
     ("frameworks/base", "0022-uiautomator-include-test-base-dependency.patch",
      ("cmds/uiautomator/cmds/uiautomator/uiautomator.sh",)),
+    ("frameworks/base", "0032-aosp-systemui-gate-desktop-first-listener.patch",
+     ("packages/SystemUI/src/com/android/systemui/desktop/DesktopFirstRepository.kt",)),
     ("system/core", "0024-aosp-init-virtio-boot-and-vendor-hook.patch",
      ("init/devices.cpp", "init/Android.bp")),
     ("system/core", "0028-aosp-init-complete-vendor-hooks.patch",

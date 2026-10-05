@@ -28,7 +28,9 @@ apply_series device/virt/virtio_arm64 \
   0005-virtio-arm64-use-compatible-utm-display.patch
 apply_series external/mesa 0003-mesa-use-build-environment-python.patch
 apply_series hardware/interfaces 0021-sensors-limit-virtio-to-bridged-motion.patch
-apply_series frameworks/base 0022-uiautomator-include-test-base-dependency.patch
+apply_series frameworks/base \
+  0022-uiautomator-include-test-base-dependency.patch \
+  0032-aosp-systemui-gate-desktop-first-listener.patch
 apply_series system/core \
   0024-aosp-init-virtio-boot-and-vendor-hook.patch \
   0028-aosp-init-complete-vendor-hooks.patch
