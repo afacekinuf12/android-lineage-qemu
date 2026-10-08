@@ -1,0 +1,28 @@
+From: Android VirtIO maintainers
+Subject: [PATCH] virt-common: start SurfaceFlinger after EGL selection
+
+The graphics detector runs during early-boot. Its property actions can be
+queued after boot's class_start core, starting SurfaceFlinger without an EGL
+implementation and causing a fatal error followed by a five-second restart.
+
+Use init's disabled-service handling to defer this service until the selected
+EGL implementation is published. enable also handles selection before core's
+class start. This follows the allocator's existing device-init gating model.
+
+diff --git a/configs/init/init.virt.rc b/configs/init/init.virt.rc
+--- a/configs/init/init.virt.rc
++++ b/configs/init/init.virt.rc
+@@ -30,6 +30,13 @@
+ # Graphics
++# The detector's property actions may run after class_start core.
++on init
++    stop surfaceflinger
++
++on property:ro.hardware.egl=*
++    enable surfaceflinger
++
+ on property:ro.vendor.graphics=mesa
+     setprop ro.hardware.egl mesa
+ 
+ on property:ro.vendor.graphics=mesa_swrast
+     setprop ro.hardware.egl mesa

@@ -22,7 +22,8 @@ apply_series device/virt/virt-common \
   0008-virt-common-align-declared-hardware.patch \
   0023-virt-common-scope-lineage-settings-overlay.patch \
   0029-virt-common-pass-build-jvm-guard.patch \
-  0030-virt-common-package-full-recovery-for-aosp.patch
+  0030-virt-common-package-full-recovery-for-aosp.patch \
+  0034-virt-common-wait-for-egl-before-surfaceflinger.patch
 apply_series device/mainline/common \
   0033-mainline-preserve-selected-product-identity.patch
 apply_series device/virt/virtio_arm64 \
@@ -35,7 +36,8 @@ apply_series frameworks/base \
   0032-aosp-systemui-gate-desktop-first-listener.patch
 apply_series system/core \
   0024-aosp-init-virtio-boot-and-vendor-hook.patch \
-  0028-aosp-init-complete-vendor-hooks.patch
+  0028-aosp-init-complete-vendor-hooks.patch \
+  0035-aosp-init-harden-proc-mount-flags.patch
 apply_series build/soong 0025-aosp-soong-allow-virtio-mesa-build.patch
 apply_series build/make 0031-aosp-track-generated-vendor-build-metadata.patch
 apply_series external/gptfdisk 0026-aosp-gptfdisk-recovery-variants.patch
