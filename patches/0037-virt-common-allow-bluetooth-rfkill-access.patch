@@ -1,0 +1,11 @@
+diff --git a/configs/init/ueventd.virt.rc b/configs/init/ueventd.virt.rc
+--- a/configs/init/ueventd.virt.rc
++++ b/configs/init/ueventd.virt.rc
+@@ -1,4 +1,7 @@
+ firmware_directories /vendor/firmware_mnt
+ 
++# The Bluetooth HAL unblocks a controller through the rfkill character device.
++/dev/rfkill	0660	bluetooth	bluetooth
++
+ # Serial console
+ /dev/hvc*	0666	system	system

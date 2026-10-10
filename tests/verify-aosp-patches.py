@@ -16,12 +16,18 @@ SERIES = (
      ("BoardConfigVirtCommon.mk",)),
     ("device/virt/virt-common", "0030-virt-common-package-full-recovery-for-aosp.patch",
      ("BoardConfigVirtCommon.mk",)),
+    ("device/virt/virt-common", "0037-virt-common-allow-bluetooth-rfkill-access.patch",
+     ("configs/init/ueventd.virt.rc",)),
     ("device/mainline/common", "0033-mainline-preserve-selected-product-identity.patch",
      ("libraries/libinit/Android.bp", "libraries/libinit/libinit_set_properties.cpp",
       "libraries/libinit/include/libinit_set_properties.h",
       "libraries/libinit/include/libinit_utils.h")),
     ("hardware/interfaces", "0021-sensors-limit-virtio-to-bridged-motion.patch",
      ("sensors/aidl/default/Android.bp", "sensors/aidl/default/include/sensors-impl/Sensors.h")),
+    ("hardware/interfaces", "0036-bluetooth-bound-hci-discovery-and-stop-on-errors.patch",
+     ("bluetooth/aidl/default/BluetoothHci.cpp",
+      "bluetooth/aidl/default/net_bluetooth_mgmt.cpp",
+      "bluetooth/aidl/default/net_bluetooth_mgmt.h")),
     ("frameworks/base", "0022-uiautomator-include-test-base-dependency.patch",
      ("cmds/uiautomator/cmds/uiautomator/uiautomator.sh",)),
     ("frameworks/base", "0032-aosp-systemui-gate-desktop-first-listener.patch",
@@ -75,8 +81,9 @@ def main():
                     url = ("https://raw.githubusercontent.com/LineageOS/"
                            "android_device_mainline_common/lineage-23.2/" + relative)
                 else:
+                    upstream_project = "build" if project == "build/make" else project
                     url = ("https://android.googlesource.com/platform/{}/+/refs/tags/{}/{}"
-                           "?format=TEXT").format(project, REVISION, relative)
+                           "?format=TEXT").format(upstream_project, REVISION, relative)
                 data = upstream_file(url)
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(data)
@@ -87,6 +94,11 @@ def main():
             print("AOSP patch applies: " + patch, flush=True)
         subprocess.run([sys.executable, str(ROOT / "tests/check-motion-registration.py"),
                         str(workspace / "hardware/interfaces")], check=True)
+        subprocess.run([sys.executable, str(ROOT / "tests/check-bluetooth-init-errors.py"),
+                        str(workspace / "hardware/interfaces")], check=True)
+        if sys.platform.startswith("linux"):
+            subprocess.run([sys.executable, str(ROOT / "tests/check-bluetooth-hci-wait.py"),
+                            str(workspace / "hardware/interfaces")], check=True)
         subprocess.run([sys.executable, str(ROOT / "tests/check-uiautomator-wrapper.py"),
                         str(workspace / "frameworks/base" /
                             "cmds/uiautomator/cmds/uiautomator/uiautomator.sh")], check=True)

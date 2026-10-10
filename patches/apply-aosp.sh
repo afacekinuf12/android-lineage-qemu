@@ -23,14 +23,17 @@ apply_series device/virt/virt-common \
   0023-virt-common-scope-lineage-settings-overlay.patch \
   0029-virt-common-pass-build-jvm-guard.patch \
   0030-virt-common-package-full-recovery-for-aosp.patch \
-  0034-virt-common-wait-for-egl-before-surfaceflinger.patch
+  0034-virt-common-wait-for-egl-before-surfaceflinger.patch \
+  0037-virt-common-allow-bluetooth-rfkill-access.patch
 apply_series device/mainline/common \
   0033-mainline-preserve-selected-product-identity.patch
 apply_series device/virt/virtio_arm64 \
   0002-virtio-arm64-expand-utm-hardware.patch \
   0005-virtio-arm64-use-compatible-utm-display.patch
 apply_series external/mesa 0003-mesa-use-build-environment-python.patch
-apply_series hardware/interfaces 0021-sensors-limit-virtio-to-bridged-motion.patch
+apply_series hardware/interfaces \
+  0021-sensors-limit-virtio-to-bridged-motion.patch \
+  0036-bluetooth-bound-hci-discovery-and-stop-on-errors.patch
 apply_series frameworks/base \
   0022-uiautomator-include-test-base-dependency.patch \
   0032-aosp-systemui-gate-desktop-first-listener.patch

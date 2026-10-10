@@ -1,0 +1,82 @@
+diff --git a/bluetooth/aidl/default/net_bluetooth_mgmt.cpp b/bluetooth/aidl/default/net_bluetooth_mgmt.cpp
+--- a/bluetooth/aidl/default/net_bluetooth_mgmt.cpp
++++ b/bluetooth/aidl/default/net_bluetooth_mgmt.cpp
+@@ -26,6 +26,7 @@
+ #include <unistd.h>
+ 
+ #include <cerrno>
++#include <chrono>
+ #include <cstdint>
+ #include <cstdlib>
+ #include <cstring>
+@@ -86,12 +87,14 @@ struct rfkill_event {
+ 
+ namespace aidl::android::hardware::bluetooth::impl {
+ 
+-// Wait indefinitely for the selected HCI interface to be enabled in the
+-// bluetooth driver.
++// Bound discovery so a missing controller does not prevent UART fallback or
++// leave the stack waiting past its initialization timeout.
+ int NetBluetoothMgmt::waitHciDev(int hci_interface) {
+   ALOGI("waiting for hci interface %d", hci_interface);
+ 
+   int ret = -1;
++  const auto deadline =
++      std::chrono::steady_clock::now() + std::chrono::seconds(1);
+   struct mgmt_pkt cmd;
+   struct pollfd pollfd;
+   struct sockaddr_hci hci_addr = {
+@@ -125,12 +128,24 @@ int NetBluetoothMgmt::waitHciDev(int hci_interface) {
+   }
+ 
+   // Poll the control socket waiting for the command response,
+-  // and subsequent [Index Added] events. The loops continue without
+-  // timeout until the selected hci interface is detected.
++  // and subsequent [Index Added] events. Interruptions and unrelated events
++  // must not restart the discovery deadline.
+   pollfd = {.fd = fd, .events = POLLIN};
+ 
+   for (;;) {
+-    ret = poll(&pollfd, 1, -1);
++    const auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(
++        deadline - std::chrono::steady_clock::now()).count();
++    if (remaining <= 0) {
++      ALOGE("timed out waiting for hci interface %d", hci_interface);
++      ret = -1;
++      break;
++    }
++    ret = poll(&pollfd, 1, static_cast<int>(remaining));
++    if (ret == 0) {
++      ALOGE("timed out waiting for hci interface %d", hci_interface);
++      ret = -1;
++      break;
++    }
+ 
+     // Poll interrupted, try again.
+     if (ret == -1 && (errno == EINTR || errno == EAGAIN)) {
+diff --git a/bluetooth/aidl/default/BluetoothHci.cpp b/bluetooth/aidl/default/BluetoothHci.cpp
+--- a/bluetooth/aidl/default/BluetoothHci.cpp
++++ b/bluetooth/aidl/default/BluetoothHci.cpp
+@@ -176,6 +176,7 @@ void BluetoothHci::initialize(
+     ALOGE("initialize: Unexpected State %d", static_cast<int>(old_state));
+     close();
+     cb->initializationComplete(Status::ALREADY_INITIALIZED);
++    return;
+   }
+ 
+   mCb = cb;
+@@ -187,8 +188,13 @@ void BluetoothHci::initialize(
+     ALOGI("Unable to open Linux interface, trying default path.");
+     mFd = getFdFromDevPath();
+     if (mFd < 0) {
+-      mState = HalState::READY;
++      {
++        std::lock_guard<std::mutex> guard(mStateMutex);
++        mState = HalState::READY;
++        mCb = nullptr;
++      }
+       cb->initializationComplete(Status::UNABLE_TO_OPEN_INTERFACE);
++      return;
+     }
+   }
+ 
